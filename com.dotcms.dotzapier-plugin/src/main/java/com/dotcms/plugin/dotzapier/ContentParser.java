@@ -1,0 +1,142 @@
+package com.dotcms.plugin.dotzapier;
+
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import com.dotmarketing.util.json.JSONObject;
+import com.dotmarketing.util.json.JSONException;
+
+public class ContentParser {
+
+    /**
+     * Parses the content received from Zapier
+     * @param content Text received from Zapier
+     * @return JSONObject Parsed data
+     * @throws JSONException
+     */
+    public final JSONObject parse(final String content) throws JSONException {
+        JSONObject result = new JSONObject();
+
+        final String[] cmdList = {
+            "save",
+            "publish",
+            "unpublish",
+            "archive",
+            "unarchive",
+            "delete"
+        };
+
+        // Split String on basis of "#" and iterate over it
+        final String[] sentences = content.split("#");
+        for (String sentence : sentences) {
+            sentence = sentence.trim();
+            final String[] splitValues = sentence.split("=");
+
+            // Trim the values obtained
+            for (int i = 0; i < splitValues.length; i++) {
+                splitValues[i] = splitValues[i].trim();
+            }
+
+            if(splitValues.length == 0) {
+                continue;
+            }
+            else if(splitValues.length == 1) {
+                String value = splitValues[0];
+                Boolean isCmdFound = false;
+
+                // Check if the command is present in the string or not
+                // if it is not present then do not add any body as well
+                for(String cmd : cmdList) {
+                    if(value.contains(cmd)) {
+                        result.put("actionName", cmd);
+                        value = value.replace(cmd, "");
+                        value = value.trim();
+                        isCmdFound = true;
+                        break;
+                    }
+                }
+
+                if(isCmdFound && value.length() > 0) {
+                    result.put("body", value);
+                }
+            }
+            else if(splitValues.length == 2) {
+                final String key = splitValues[0];
+                final String longText = splitValues[1];
+                String[] values = this.extractStringBetweenQuotes(longText);
+
+                if(values.length == 2) {
+                    result.put(key, values[0].replace("\"", "").trim());
+                    String body = values[1].replace("\"", "").trim();
+                    if(body.length() > 0) {
+                        result.put("body", body);
+                    }
+                }
+                else if(values.length == 1) {
+                    result.put(key, values[0].replace("\"", "").trim());
+                    String body = longText.replace(values[0].trim(), "").replace("\"", "").trim();
+                    if(body.length() > 0) {
+                        result.put("body", body);
+                    }
+                }
+                else if(values.length == 0) {
+                    String[] items = longText.split(" ");
+                    if(items.length > 0) {
+                        result.put(key, items[0].replace("\"", "").trim());
+                        String body = longText.replace(items[0].replace("\"", "").trim(), "").replace("\"", "").trim();
+                        if(body.length() > 0) {
+                            result.put("body", body);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Replace the id field with identifier for all operations
+        if(result.has("id")) {
+            result.put("identifier", result.optString("id", ""));
+            result.remove("id");
+        }
+
+        // Parse publish date to appropriate format
+        // if(result.has("publishDate")) { 
+        //     final String publishDateText = result.getString("publishDate");
+        //     final String publishDate = this.parseDate(publishDateText);
+        //     result.put("publishDate", publishDate);
+        // }
+
+        return result;
+    }
+
+    /**
+     * Extracts the string from the given text
+     * @param text Text received from Zapier
+     * @return String[] List of strings
+     */
+    private final String[] extractStringBetweenQuotes(final String text) {
+        ArrayList<String> result = new ArrayList<String>();
+
+        final String regex = "(\\\"[a-zA-Z0-9 :;,.!?_@#$%^&+\\-=*<>\\{\\}()\\[\\]]+\\\")";
+
+        final Pattern pattern = Pattern.compile(regex, Pattern.MULTILINE);
+        final Matcher matcher = pattern.matcher(text);
+
+        if(matcher.find()) {
+
+            for (int i = 1; i <= matcher.groupCount(); i++) {
+                result.add(matcher.group(i));
+            }
+        }
+
+        return result.toArray(new String[0]);
+    }
+
+    /**
+     * Parses the date string to the appropriate format
+     * @param dateText Possible string formatted in different date formats
+     * @return String Date string in yyyy-MM-dd HH:mm:ss format 
+     */
+    private final String parseDate(final String dateText) {
+        return dateText; 
+    }
+}
