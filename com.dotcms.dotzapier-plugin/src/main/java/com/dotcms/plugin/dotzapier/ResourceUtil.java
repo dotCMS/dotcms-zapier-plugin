@@ -225,7 +225,7 @@ public class ResourceUtil {
             }
             
             if(dotCMSContent.has("tags")) {
-                contentletObject.put("siteOrFolder", dotCMSContent.optString("tags", ""));
+                contentletObject.put("tags", dotCMSContent.optString("tags", ""));
             }
         
             JSONObject body = new JSONObject();
