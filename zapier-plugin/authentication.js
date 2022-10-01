@@ -76,25 +76,6 @@ const getCurrentUser = async (z, bundle) => {
 };
 
 /**
- * HTTP Middleware which will append the necessary headers.
- * It will be invoked for every HTTP request made by Zapier
- * except for authention api 
- * @param request Node HTTP Request object
- * @param z Zapier object
- * @param bundle Stores all the user input as well derived attributes 
- */
-const includeApiKeyHeader = (request, z, bundle) => {
-    request.headers = request.headers || {};
-    if (bundle.authData.apiKey) {
-        request.headers['authorization'] = 'Bearer ' + bundle.authData.apiKey;
-    }
-    request.headers['content-type'] = 'application/json';
-    request.headers['accept'] = 'application/json';
-
-    return request;
-};
-
-/**
  * Zapier authentication Object
  * Session authentication is enabled for dotCMS
  * URL, email and password are required fields that needs to be inputed 
@@ -138,6 +119,5 @@ const authentication = {
 };
 
 module.exports = {
-  authentication: authentication,
-  includeApiKeyHeader: includeApiKeyHeader
+  authentication: authentication
 }
