@@ -1,5 +1,7 @@
 package com.dotcms.plugin.dotzapier;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -99,11 +101,18 @@ public class ContentParser {
         }
 
         // Parse publish date to appropriate format
-        // if(result.has("publishDate")) { 
-        //     final String publishDateText = result.getString("publishDate");
-        //     final String publishDate = this.parseDate(publishDateText);
-        //     result.put("publishDate", publishDate);
-        // }
+        if(result.has("publishDate")) { 
+            final String publishDateText = result.getString("publishDate");
+            final String publishDate = this.parseDate(publishDateText);
+            
+            // If it is not a valid date, then remove the key from the resultant json
+            if(publishDate.length() == 0) {
+                result.remove("publishDate");
+            }
+            else {
+                result.put("publishDate", publishDate);
+            }
+        }
 
         return result;
     }
@@ -132,11 +141,90 @@ public class ContentParser {
     }
 
     /**
+     * Generates all possible supported date format strings 
+     * @return String[] List of all supported date format strings
+     */
+    private final String[] generateAllDateFormats() {
+        final String[] dateFormats = {
+            "MM dd yy", 
+            "dd MM yy", 
+            "dd yy MM", 
+            "MM yy dd", 
+            "yy MM dd", 
+            "yy dd MM",
+            "MM dd yyyy", 
+            "dd MM yyyy", 
+            "dd yyyy MM", 
+            "MM yyyy dd", 
+            "yyyy MM dd", 
+            "yyyy dd MM",
+            "MMM dd yy",
+            "dd MMM yy",
+            "dd yy MMM",
+            "MMM yy dd",
+            "yy MMM dd",
+            "yy dd MMM",
+            "MMM dd yyyy",
+            "dd MMM yyyy",
+            "dd yyyy MMM",
+            "MMM yyyy dd",
+            "yyyy MMM dd",
+            "yyyy dd MMM"
+        };
+        final char[] delimitters = { ' ', '-', '/', ':', '\\' };
+
+        ArrayList<String> supportedDateFormats = new ArrayList<String>();
+
+        for (char delimitter : delimitters) {
+            for (String dateFormat : dateFormats) {
+                String fmt = dateFormat.replace(' ', delimitter);
+                
+                // All possible time formats
+                supportedDateFormats.add(fmt + " HH:mm:ss");
+                supportedDateFormats.add(fmt + " HH:mm");
+                supportedDateFormats.add(fmt + " HH");
+                supportedDateFormats.add(fmt);
+            }
+        }
+
+        return supportedDateFormats.toArray(new String[0]);
+    }
+
+    /**
+     * Obtains the date in the desired format
+     * @param dateFormat Format of the date
+     * @param dateString Date text parsed from the Zapier content 
+     * @return String Date String in the desired format else it will return an empty string
+     */
+    private final String obtainDateInDesiredFormat(String dateFormat, String dateString) {
+        try {
+            final String desiredFormat = "yyyy-MM-dd HH:mm:ss";
+
+            SimpleDateFormat currentFormat = new SimpleDateFormat(dateFormat);
+            currentFormat.setLenient(false);
+    
+            Date date = currentFormat.parse(dateString);
+            String desiredDate = new SimpleDateFormat(desiredFormat).format(date);
+            return desiredDate;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    /**
      * Parses the date string to the appropriate format
      * @param dateText Possible string formatted in different date formats
-     * @return String Date string in yyyy-MM-dd HH:mm:ss format 
+     * @return String Date string in yyyy-MM-dd HH:mm:ss format else it will return an empty string
      */
     private final String parseDate(final String dateText) {
-        return dateText; 
+        final String[] supportedDateFormats = this.generateAllDateFormats();
+
+        for (String dateFormat : supportedDateFormats) {
+            String formattedDate = this.obtainDateInDesiredFormat(dateFormat, dateText);
+            if(formattedDate.length() > 0) {
+                return formattedDate;
+            }
+        }
+        return ""; 
     }
 }

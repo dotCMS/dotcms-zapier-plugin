@@ -207,7 +207,14 @@ public class ResourceUtil {
             contentletObject.put("body", dotCMSContent.optString("body", ""));
             contentletObject.put("author", dotCMSContent.optString("author", "Default Author"));
             contentletObject.put("urlTitle", urlTitle);
-            contentletObject.put("publishDate", publishDate);
+
+            // Handle optional publishDate
+            if(dotCMSContent.has("publishDate")) {
+                contentletObject.put("publishDate", dotCMSContent.getString("publishDate"));
+            }
+            else {
+                contentletObject.put("publishDate", publishDate);
+            }
 
             // Handle optional parameters from Zapier
             if(dotCMSContent.has("siteOrFolder")) {
