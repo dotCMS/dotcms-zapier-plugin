@@ -97,8 +97,23 @@ public class ResourceUtil {
                     if(jsonObjectView.has("contentlets")) {
                         final JSONArray contentlets = jsonObjectView.getJSONArray("contentlets");
                         if(contentlets.length() > 0) {
-                            final JSONObject contentlet = contentlets.getJSONObject(0);
-                            contentIdentifier = contentlet.optString("identifier", "");
+                            for(int i=0; i< contentlets.length(); i++) {
+                                final JSONObject contentlet = contentlets.getJSONObject(i);
+                                
+                                // Look for a extact match
+                                if(contentlet.optString("title", "").equalsIgnoreCase(title) ||
+                                (contentlet.optString("author", "").equalsIgnoreCase(author))
+                                ) {
+                                    contentIdentifier = contentlet.optString("identifier", "");
+                                    break;
+                                }
+                            }
+
+                            // Since no exact matches were found, lets do a partial match
+                            if(contentIdentifier.length() == 0) {
+                                final JSONObject contentlet = contentlets.getJSONObject(0);
+                                contentIdentifier = contentlet.optString("identifier", "");
+                            }
                         }
                     }
                 }
