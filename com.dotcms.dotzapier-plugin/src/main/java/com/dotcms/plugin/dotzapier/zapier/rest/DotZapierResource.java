@@ -3,7 +3,7 @@
  * Defines the public url associated with the plugin
 */
 
-package com.dotcms.plugin.dotzapier;
+package com.dotcms.plugin.dotzapier.zapier.rest;
 
 import org.apache.commons.io.IOUtils;
 
@@ -22,6 +22,8 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.Produces;
 
+import com.dotcms.plugin.dotzapier.util.ContentParser;
+import com.dotcms.plugin.dotzapier.util.ResourceUtil;
 import com.dotcms.rest.ResponseEntityView;
 import com.dotcms.rest.WebResource;
 import com.dotcms.rest.annotation.NoCache;

@@ -2,7 +2,7 @@
  * Contains the utility methods for dotZapier resource
 */
 
-package com.dotcms.plugin.dotzapier;
+package com.dotcms.plugin.dotzapier.util;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
@@ -44,7 +44,7 @@ public class ResourceUtil {
      * @throws IOException
      * @throws JSONException
     */
-    protected final String getContentTypeVariableName(final String hostName, final String dotCMSAPIKey, final String ContentTypeName) throws IOException, JSONException {
+    public final String getContentTypeVariableName(final String hostName, final String dotCMSAPIKey, final String ContentTypeName) throws IOException, JSONException {
         String contentTypeVariableName = "";
         final String url = hostName + "/api/v1/contenttype" + "?orderby=modDate&direction=DESC&per_page=100&" + "filter=" + URLEncoder.encode(ContentTypeName, "UTF-8").replace("+", "%20");
 
@@ -84,7 +84,7 @@ public class ResourceUtil {
      * @param author The author of the content
      * @return String Content Identifier
     */
-    protected final String searchContentIdentifier(final String hostName, final String dotCMSAPIKey, final String title, final String author) {
+    public final String searchContentIdentifier(final String hostName, final String dotCMSAPIKey, final String title, final String author) {
         String contentIdentifier = "";
         try {
 		    final JSONObject responseBody = this.obtainContentFromDotCMS(hostName, dotCMSAPIKey, title, author);
@@ -138,7 +138,7 @@ public class ResourceUtil {
      * @return JSONObject List of dotCMS objects
      * @throws JSONException
      */
-    protected final JSONObject obtainContentFromDotCMS(final String hostName, final String dotCMSAPIKey, final String title, final String author) throws JSONException {
+    public final JSONObject obtainContentFromDotCMS(final String hostName, final String dotCMSAPIKey, final String title, final String author) throws JSONException {
         final String url = hostName + "/api/content/_search";
         JSONObject responseBody = new JSONObject("{}");
 
@@ -196,7 +196,7 @@ public class ResourceUtil {
      * @throws IOException
      * @throws JSONException
      */
-    protected final String saveOperation(final String hostName, final String dotCMSAPIKey, final JSONObject dotCMSContent, final String contentTypeVariableName) throws IOException, JSONException {
+    public final String saveOperation(final String hostName, final String dotCMSAPIKey, final JSONObject dotCMSContent, final String contentTypeVariableName) throws IOException, JSONException {
 
         String apiResponse = "Unable to process save request";
 
@@ -269,7 +269,7 @@ public class ResourceUtil {
      * @throws IOException
      * @throws JSONException
      */
-    protected final String editOperation(final String hostName, final String dotCMSAPIKey, final String contentIdentifier, final JSONObject dotCMSContent) throws IOException, JSONException {
+    public final String editOperation(final String hostName, final String dotCMSAPIKey, final String contentIdentifier, final JSONObject dotCMSContent) throws IOException, JSONException {
         String apiResponse = "Unable to process edit request";
 
         try {
@@ -321,7 +321,7 @@ public class ResourceUtil {
      * @throws IOException
      * @throws JSONException
      */
-    protected final String workflowOperation(final String hostName, final String dotCMSAPIKey, final String contentIdentifier, final String triggerName) throws IOException, JSONException {
+    public final String workflowOperation(final String hostName, final String dotCMSAPIKey, final String contentIdentifier, final String triggerName) throws IOException, JSONException {
         String apiResponse = "Unable to process workflow request";
 
         try {
@@ -419,7 +419,7 @@ public class ResourceUtil {
      * @return JSONObject dotCMS content api object to be sent to Zapier
      * @throws JSONException
      */
-    protected final JSONObject prepareZapierObject(final JSONObject json) throws JSONException {
+    public final JSONObject prepareZapierObject(final JSONObject json) throws JSONException {
         JSONObject temp = new JSONObject();
         
         final String[] keys = {
@@ -453,7 +453,7 @@ public class ResourceUtil {
      * Writes data to a JSON file
      * @param jsonObject Data to be writted to file
      */
-    protected final void writeJSON(JSONObject jsonObject) {
+    public final void writeJSON(JSONObject jsonObject) {
         try {
             BundleContext bundleContext = FrameworkUtil.getBundle(this.getClass()).getBundleContext();
             File filePath = bundleContext.getDataFile(ResourceUtil.webhookUrls);
@@ -473,7 +473,7 @@ public class ResourceUtil {
      * Reads a JSON file
      * @return JSONObject JSON data read from the file
      */
-    protected final JSONObject readJSON() {
+    public final JSONObject readJSON() {
         JSONObject result = new JSONObject();
         try {
             BundleContext bundleContext = FrameworkUtil.getBundle(this.getClass()).getBundleContext();

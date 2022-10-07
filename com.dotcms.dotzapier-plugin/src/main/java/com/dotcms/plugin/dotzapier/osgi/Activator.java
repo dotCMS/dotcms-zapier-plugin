@@ -3,9 +3,11 @@
  * Registers the rest endpoint resources
 */
 
-package com.dotcms.plugin.dotzapier;
+package com.dotcms.plugin.dotzapier.osgi;
 
 import org.osgi.framework.BundleContext;
+
+import com.dotcms.plugin.dotzapier.zapier.rest.DotZapierResource;
 import com.dotcms.rest.config.RestServiceUtil;
 import com.dotmarketing.osgi.GenericBundleActivator;
 import com.dotmarketing.util.Logger;

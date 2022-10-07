@@ -1,4 +1,4 @@
-package com.dotcms.plugin.dotzapier;
+package com.dotcms.plugin.dotzapier.util;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;

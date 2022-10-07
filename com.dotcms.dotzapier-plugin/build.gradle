@@ -24,7 +24,7 @@ jar {
                 'Bundle-Vendor': 'dotCMS',
                 'Bundle-Description': 'dotCMS - Zapier Integration example',
                 'Bundle-DocURL': 'https://dotcms.com/',
-                'Bundle-Activator': 'com.dotcms.plugin.dotzapier.Activator',
+                'Bundle-Activator': 'com.dotcms.plugin.dotzapier.osgi.Activator',
                 'Import-Package': '*;version=0'
         )
     }
