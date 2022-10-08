@@ -24,6 +24,7 @@ import javax.ws.rs.Produces;
 
 import com.dotcms.plugin.dotzapier.util.ContentParser;
 import com.dotcms.plugin.dotzapier.util.ResourceUtil;
+
 import com.dotcms.rest.ResponseEntityView;
 import com.dotcms.rest.WebResource;
 import com.dotcms.rest.annotation.NoCache;
@@ -124,7 +125,7 @@ public class DotZapierResource  {
         Logger.info(this, "Perform List Zapier API invoked");
         ResourceUtil resourceUtil = new ResourceUtil();
 
-        final String hostName = request.getScheme() + "://" + request.getServerName();
+        final String hostName = this.getHostName(request);
         final String dotCMSAPIKey = request.getHeader("authorization");
         
         JSONArray dotCMSData = new JSONArray();
@@ -287,7 +288,7 @@ public class DotZapierResource  {
 
         ResourceUtil resourceUtil = new ResourceUtil();
 
-        final String hostName = request.getScheme() + "://" + request.getServerName();
+        final String hostName = this.getHostName(request);
         final String dotCMSAPIKey = request.getHeader("authorization");
 
 		final String jsonString = new String(IOUtils.toByteArray(request.getInputStream()));
@@ -435,5 +436,13 @@ public class DotZapierResource  {
         JSONObject errorResponse = new JSONObject();
         errorResponse.put("message", "Unable to process the request");
         return Response.status(400).entity(errorResponse).build();
+    }
+
+    private String getHostName(final HttpServletRequest request) {
+        final String requestUrl = request.getRequestURL().toString();
+        final String requestUri = request.getRequestURI();
+        final String hostName = requestUrl.replace(requestUri, "");
+
+        return hostName;
     }
 }
