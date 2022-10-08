@@ -1,0 +1,14 @@
+---
+name: "dotZapier"
+description: "This app connects your dotCMS instance with Zapier. It acts as a web server to receive requests from Zapier actions and sends out content for Zapier triggers."
+iconUrl: "https://cdn.zapier.com/zapier/images/favicon.ico"
+allowExtraParameters: false
+params:
+
+  zapName:
+    label: "Name of the Zap"
+    value: ""
+    hidden: true
+    type: "STRING"
+    hint: "One can store the name of the Zap"
+    required: false

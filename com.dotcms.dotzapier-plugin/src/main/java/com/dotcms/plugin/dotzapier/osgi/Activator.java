@@ -7,7 +7,9 @@ package com.dotcms.plugin.dotzapier.osgi;
 
 import org.osgi.framework.BundleContext;
 
+import com.dotcms.plugin.dotzapier.util.AppUtil;
 import com.dotcms.plugin.dotzapier.zapier.rest.DotZapierResource;
+
 import com.dotcms.rest.config.RestServiceUtil;
 import com.dotmarketing.osgi.GenericBundleActivator;
 import com.dotmarketing.util.Logger;
@@ -25,6 +27,10 @@ public class Activator extends GenericBundleActivator {
 
 		//Register Resource
 		RestServiceUtil.addResource(DotZapierResource.class);
+
+		//Display the plugin as an App
+		Logger.info(Activator.class.getName(), "Generating dotZapier APP");
+		new AppUtil().copyAppYml();
 	}
 
 	/**
@@ -38,5 +44,9 @@ public class Activator extends GenericBundleActivator {
 
 		//UnRegister Resource
 		RestServiceUtil.removeResource(DotZapierResource.class);
+
+		//Remove the plugin from the App
+		Logger.info(Activator.class.getName(), "Removing dotZapier APP");
+        new AppUtil().deleteYml();
 	}
 }

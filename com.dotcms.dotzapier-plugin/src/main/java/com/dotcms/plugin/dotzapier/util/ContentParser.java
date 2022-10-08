@@ -1,3 +1,7 @@
+/**
+ * Contains the utility methods to parse the text coming from Zapier
+*/
+
 package com.dotcms.plugin.dotzapier.util;
 
 import java.text.SimpleDateFormat;
