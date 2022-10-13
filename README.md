@@ -2,7 +2,7 @@
 
 Two plugins are needed to connect Zapier with dotCMS.
 
-The first plugin is an OSGi application that needs to be executed within the dotCMS. It acts as a web server to receive requests from Zapier actions and also sends out content for Zapier triggers
+The first plugin is an OSGi application that needs to be executed within the dotCMS. It acts as a web server to receive requests from Zapier actions and sends out content for Zapier triggers
 
 OSGi Application is present in [com.dotcms.dotzapier-plugin](com.dotcms.dotzapier-plugin)
 
