@@ -97,19 +97,15 @@ public class DotZapierResource  {
      *      "identifier": "2a4fb69a-1f79-4bef-be47-20dec8669c78",
      *      "hostName": "demo.dotcms.com",
      *      "url": "https://demo.dotcms.com/content.ec5c6e2f-4266-4ff8-adfc-22f76ba453b7",
-     *      "urlTitle": "french-polynesia-everything-you-need-to-know",
      *      "contentType": "My Blog",
      *      "title": "French Polynesia Everything You Need to Know",
      *      "modUserName": "Admin User",
      *      "owner": "dotcms.org.1",
-     *      "tags": "vacation,french polynesia,water,enthusiast:persona",
      *      "archived": false,
      *      "working": true,
      *      "locked": false,
      *      "live": true,
      *      "modDate": "2022-06-07 18:23:10.844",
-     *      "publishDate": "2022-06-07 18:23:10.844",
-     *      "postingDate": "Thu Sep 19 21:59:00 UTC 2019"
      *   }
      * ]
     */
@@ -237,10 +233,6 @@ public class DotZapierResource  {
         final String actionName = requestBody.optString("triggerName", "");
         final String triggerURL = requestBody.optString("url", "");
 
-        final String[] urlParameters = triggerURL.split("/");
-        final String hookId = urlParameters[urlParameters.length - 1];
-        
-        Logger.info(this, "Hook ID " + hookId);
         Logger.info(this, "URL " + triggerURL);
         Logger.info(this, "actionName " + actionName);
         
