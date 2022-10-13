@@ -413,9 +413,41 @@ public class ResourceUtil {
     }
 
     /**
+     * Invokes the REST API url shared by Zapier at the time of publishing the Zap
+     * @param url Zapier REST API url
+     * @param body Payload to be sent to Zapier
+     * @return boolean Indicating the Rest action was successful or not
+     */
+    public boolean publishToZapier(final String url, final JSONObject body) {
+        boolean apiResponse = false;
+
+        try {
+            HttpClient httpClient = HttpClients.createDefault();
+
+            HttpPut request = new HttpPut(url);
+            StringEntity params = new StringEntity(body.toString());
+            request.addHeader("content-type", "application/json");
+            request.addHeader("accept", "application/json");
+            request.setEntity(params);
+            HttpResponse response = httpClient.execute(request);
+
+            if(response.getStatusLine().getStatusCode() == 200) {
+                apiResponse = true;
+            }
+        }
+        catch (Exception ex) {
+            apiResponse = false;
+            Logger.error(this, "Unable to invoke Zapier publish action");
+            Logger.error(this, ex.getMessage());
+        }
+
+        return apiResponse;
+    }
+
+    /**
      * Generates the dotCMS object which needs to be sent out to Zapier. 
      * It contains a subset of all the keys available on the dotCMS content object
-     * @param json 
+     * @param json Raw contentlet object 
      * @return JSONObject dotCMS content api object to be sent to Zapier
      * @throws JSONException
      */
@@ -426,19 +458,15 @@ public class ResourceUtil {
             "identifier",
             "hostName",
             "url",
-            "urlTitle",
             "contentType",
             "title",
             "modUserName",
             "owner",
-            "tags",
             "archived",
             "working",
             "locked",
             "live",
-            "modDate",
-            "publishDate",
-            "postingDate"
+            "modDate"
         };
 
         for(String key : keys) {
