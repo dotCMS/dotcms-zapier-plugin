@@ -62,7 +62,7 @@ module.exports = {
     key: 'cmdOperation',
     noun: 'Content',
     display: {
-        label: 'Perform an action on dotCMS',
+        label: 'Perform An Action On DotCMS',
         description: 'Perform content manipulation on dotCMS',
         hidden: false,
         important: true,
