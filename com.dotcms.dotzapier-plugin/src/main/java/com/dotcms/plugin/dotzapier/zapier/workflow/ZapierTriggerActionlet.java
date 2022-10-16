@@ -41,7 +41,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
     */
     @Override
     public String getHowTo() {
-        return null;
+        return "Send notification to Zapier for integrating with third party apps";
     }
 
     /**
@@ -52,15 +52,28 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
     */
     @Override
     public void executeAction(WorkflowProcessor processor, Map<String, WorkflowActionClassParameter> params) throws WorkflowActionFailureException {
+        Logger.info(this, "Zapier Workflow action invoked");
 
         final WorkflowAction workflowAction = processor.getAction();
-        final String actionName = workflowAction.getName(); // get Action Name
-
-        final Contentlet contentlet = processor.getContentlet();
-        final JSONObject dotCMSObject = this.prepareContentletObject(contentlet);
-
+        final String actionName = workflowAction.getName().toLowerCase(); // get Action Name
+        
         ResourceUtil resourceUtil = new ResourceUtil();
         final JSONObject zapierTriggerURLS = resourceUtil.readJSON();
+
+        Logger.info(this, "Workflow Action Name " + actionName);
+        Logger.info(this, "Available Zapier Actions " + zapierTriggerURLS.names().toString());
+
+        final Contentlet contentlet = processor.getContentlet();
+
+        // Do not execute the workflow action if no content is found
+        // This would only occur when the destroy workflow is executed before Zapier workflow
+        if(contentlet == null) {
+            Logger.error(this, "No contentlet found.");
+            return;
+        }
+
+        final JSONObject dotCMSObject = this.prepareContentletObject(contentlet);
+
         if(zapierTriggerURLS.has(actionName)) {
             try {
                 Logger.info(this, "Zapier Action found " + actionName);
