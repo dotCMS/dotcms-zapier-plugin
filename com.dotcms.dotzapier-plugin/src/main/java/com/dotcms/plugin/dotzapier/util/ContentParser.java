@@ -25,11 +25,13 @@ public class ContentParser {
 
         final String[] cmdList = {
             "save",
+            "edit",
             "publish",
             "unpublish",
             "archive",
             "unarchive",
-            "delete"
+            "delete",
+            "destroy"
         };
 
         // Split String on basis of "#" and iterate over it
@@ -103,21 +105,7 @@ public class ContentParser {
             result.put("identifier", result.optString("id", ""));
             result.remove("id");
         }
-
-        // Parse publish date to appropriate format
-        if(result.has("publishDate")) { 
-            final String publishDateText = result.getString("publishDate");
-            final String publishDate = this.parseDate(publishDateText);
-            
-            // If it is not a valid date, then remove the key from the resultant json
-            if(publishDate.length() == 0) {
-                result.remove("publishDate");
-            }
-            else {
-                result.put("publishDate", publishDate);
-            }
-        }
-
+        
         return result;
     }
 
@@ -220,7 +208,7 @@ public class ContentParser {
      * @param dateText Possible string formatted in different date formats
      * @return String Date string in yyyy-MM-dd HH:mm:ss format else it will return an empty string
      */
-    private final String parseDate(final String dateText) {
+    public final String parseDate(final String dateText) {
         final String[] supportedDateFormats = this.generateAllDateFormats();
 
         for (String dateFormat : supportedDateFormats) {

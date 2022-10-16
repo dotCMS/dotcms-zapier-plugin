@@ -128,7 +128,7 @@ public class DotZapierResource  {
         
         // Invoke the /api/content/_search API to obtain the list of dotCMS objects
         try {
-            final JSONObject responseBody = resourceUtil.obtainContentFromDotCMS(hostName, dotCMSAPIKey, "", "");
+            final JSONObject responseBody = resourceUtil.obtainContentFromDotCMS(hostName, dotCMSAPIKey, "");
             
             // Obtains the result from the required key
             if(responseBody.has("entity")) {
@@ -327,8 +327,9 @@ public class DotZapierResource  {
                 return Response.status(400).entity(errorResponse).build();
             }
 
-
-            final String contentTypeVariableName = resourceUtil.getContentTypeVariableName(hostName, dotCMSAPIKey, contentType);
+            final JSONObject contentTypeObject = resourceUtil.getContentTypeObject(hostName, dotCMSAPIKey, contentType);
+            
+            final String contentTypeVariableName = contentTypeObject.optString("variableName", "");
             Logger.info(this, "Content Type Variable Name " + contentTypeVariableName);
 
             // If content type cannot be resolved, then reject the request
@@ -341,19 +342,8 @@ public class DotZapierResource  {
             }
 
             // Invoke dotCMS crud API
-            final String apiResponse = resourceUtil.saveOperation(hostName, dotCMSAPIKey, dotCMSContent, contentTypeVariableName);
-            JSONObject userResponse = new JSONObject();
-
-            // Build the API response
-            if(apiResponse.length() == 0) {
-                userResponse.put("message", actionName + " process successfully");
-                return Response.status(200).entity(userResponse).build();
-            }
-            else {
-                userResponse.put("error", actionName + " process failed");
-                userResponse.put("message", apiResponse);
-                return Response.status(400).entity(userResponse).build();
-            }
+            final String apiResponse = resourceUtil.saveOperation(hostName, dotCMSAPIKey, dotCMSContent, contentTypeObject);
+            return this.buildApiResponse(apiResponse, actionName);
         }
         else if( // All other actions
             actionName.equals("edit") ||
@@ -361,13 +351,13 @@ public class DotZapierResource  {
             actionName.equals("unpublish") ||
             actionName.equals("archive") ||
             actionName.equals("unarchive") ||
-            actionName.equals("delete")
+            actionName.equals("delete") ||
+            actionName.equals("destroy")
         ) {
             String contentIdentifier = dotCMSContent.optString("identifier", "");
             // If the content identifier cannot be resolved, then reject the request
             if(contentIdentifier.length() == 0) {
                 final String title = dotCMSContent.optString("title", "");
-                final String author = dotCMSContent.optString("author", "");
 
                 if(title.length() == 0) {
                     Logger.error(this, "Either specifies the identifier or title");
@@ -377,7 +367,7 @@ public class DotZapierResource  {
                     return Response.status(400).entity(errorResponse).build();
                 }
 
-                contentIdentifier = resourceUtil.searchContentIdentifier(hostName, dotCMSAPIKey, title, author);
+                contentIdentifier = resourceUtil.searchContentIdentifier(hostName, dotCMSAPIKey, title);
                 
                 if(contentIdentifier.length() == 0) {
                     Logger.error(this, "No content matching the search criteria found");
@@ -389,36 +379,16 @@ public class DotZapierResource  {
             }
 
             if(actionName.equals("edit")) {
-                // Invoke dotCMS crud API
-                final String apiResponse = resourceUtil.editOperation(hostName, dotCMSAPIKey, contentIdentifier, dotCMSContent);
-                JSONObject userResponse = new JSONObject();
+                final JSONObject contentTypeObject = resourceUtil.getContentTypeObject(hostName, dotCMSAPIKey, contentType);
                 
-                // Build the API response
-                if(apiResponse.length() == 0) {
-                    userResponse.put("message", actionName + " process successfully");
-                    return Response.status(200).entity(userResponse).build();
-                }
-                else {
-                    userResponse.put("error", actionName + " process failed");
-                    userResponse.put("message", apiResponse);
-                    return Response.status(400).entity(userResponse).build();
-                }
+                // Invoke dotCMS crud API
+                final String apiResponse = resourceUtil.editOperation(hostName, dotCMSAPIKey, contentIdentifier, dotCMSContent, contentTypeObject);
+                return this.buildApiResponse(apiResponse, actionName);
             }
             else {
                 // Invoke dotCMS crud API
                 final String apiResponse = resourceUtil.workflowOperation(hostName, dotCMSAPIKey, contentIdentifier, actionName);
-                JSONObject userResponse = new JSONObject();
-                
-                // Build the API response
-                if(apiResponse.length() == 0) {
-                    userResponse.put("message", actionName + " process successfully");
-                    return Response.status(200).entity(userResponse).build();
-                }
-                else {
-                    userResponse.put("error", actionName + " process failed");
-                    userResponse.put("message", apiResponse);
-                    return Response.status(400).entity(userResponse).build();
-                }
+                return this.buildApiResponse(apiResponse, actionName);
             }
         }
 
@@ -428,6 +398,28 @@ public class DotZapierResource  {
         JSONObject errorResponse = new JSONObject();
         errorResponse.put("message", "Unable to process the request");
         return Response.status(400).entity(errorResponse).build();
+    }
+
+    private final Response buildApiResponse(final String apiResponse, final String actionName) throws JSONException {
+        JSONObject userResponse = new JSONObject();
+
+        // Build the API response
+        if(apiResponse.length() == 0) {
+            final String successMessage = actionName + " process successfully executed";
+            Logger.info(this, successMessage);
+
+            userResponse.put("message", successMessage);
+            return Response.status(200).entity(userResponse).build();
+        }
+        else {
+            final String errorMessage = actionName + " process failed";
+            Logger.error(this, errorMessage);
+            Logger.error(this, apiResponse);
+
+            userResponse.put("error", errorMessage);
+            userResponse.put("message", apiResponse);
+            return Response.status(400).entity(userResponse).build();
+        }
     }
 
     private String getHostName(final HttpServletRequest request) {

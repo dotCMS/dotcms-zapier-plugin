@@ -18,7 +18,8 @@ import org.osgi.framework.FrameworkUtil;
 
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.time.format.DateTimeFormatter;  
+import java.time.format.DateTimeFormatter;
+import java.util.Iterator;
 import java.time.LocalDateTime;  
 import java.io.FileWriter;
 import java.io.File;
@@ -40,12 +41,13 @@ public class ResourceUtil {
      * @param hostName The dotCMS instance url
      * @param dotCMSAPIKey API Key to access the Content API
      * @param ContentTypeName Name of the content type
-     * @return String Content Type variable name
+     * @return JSONObject Contains the dotCMS content type variable name and fields associated with it
      * @throws IOException
      * @throws JSONException
     */
-    public final String getContentTypeVariableName(final String hostName, final String dotCMSAPIKey, final String ContentTypeName) throws IOException, JSONException {
-        String contentTypeVariableName = "";
+    public final JSONObject getContentTypeObject(final String hostName, final String dotCMSAPIKey, final String ContentTypeName) throws IOException, JSONException {
+        final JSONObject contentTypeObject = new JSONObject();
+
         final String url = hostName + "/api/v1/contenttype" + "?orderby=modDate&direction=DESC&per_page=100&" + "filter=" + URLEncoder.encode(ContentTypeName, "UTF-8").replace("+", "%20");
 
         try {
@@ -63,17 +65,83 @@ public class ResourceUtil {
                 final JSONArray entities = responseBody.getJSONArray("entity");
                 if(entities.length() > 0) {
                     final JSONObject entity = entities.getJSONObject(0);
-                    contentTypeVariableName = entity.optString("variable", "");
+                    final JSONObject contentTypeFields = this.getContentTypeFields(entity);
+                    final String contentTypeVariableName = entity.optString("variable", "");
+
+                    contentTypeObject.put("variableName", contentTypeVariableName);
+                    contentTypeObject.put("fields", contentTypeFields);
                 }
             }
         }
         catch (Exception ex) {
-            contentTypeVariableName = "";
             Logger.error(this, "Unable to process Content Type variable name request");
             Logger.error(this, ex.getMessage());
         }
 
-        return contentTypeVariableName;
+        return contentTypeObject;
+    }
+
+    /**
+     * Obtains all the fields associated with the dotCMS content type
+     * @param entity Single dotCMS content type object
+     * @return JSONObject Contains the fields associated with the dotCMS content type
+     * @throws JSONException
+     */
+    private final JSONObject getContentTypeFields(JSONObject entity) throws JSONException {
+        final JSONObject contentTypeFields = new JSONObject();
+
+        try {
+            // If the entity contains the layout, then only iterate over it
+            if(entity.has("layout")) {
+                final JSONArray layouts = entity.getJSONArray("layout");
+
+                // Iterate over the Layouts
+                for(int i=0; i<layouts.length(); i++) {
+                    final JSONObject layout = layouts.getJSONObject(i);
+                    if(layout.has("columns")) {
+                        final JSONArray columns = layout.getJSONArray("columns");
+
+                        // Iterate over the Columns
+                        for(int j=0; j<columns.length(); j++) {
+                            final JSONObject column = columns.getJSONObject(j);
+                            if(column.has("fields")) {
+                                final JSONArray fields = column.getJSONArray("fields");
+
+                                // Iterate over the fields
+                                for(int k=0; k<fields.length(); k++) {
+                                    final JSONObject field = fields.getJSONObject(k);
+                                    final String variableName = field.optString("variable", "");
+
+                                    JSONObject contentTypeField = new JSONObject();
+
+                                    // Obtain only the required fields from the content type object
+                                    final String[] keys = {
+                                        "dataType",
+                                        "readOnly",
+                                        "required",
+                                        "searchable"
+                                    };
+                            
+                                    for(String key : keys) {
+                                        contentTypeField.put(key, field.get(key));
+                                    }
+                                    contentTypeField.put("variable", variableName);
+
+                                    contentTypeFields.put(variableName, contentTypeField);
+                                }
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex) {
+            Logger.error(this, "Unable to obtain content type fields");
+            Logger.error(this, ex.getMessage());
+        }
+
+        return contentTypeFields;
     }
     
     /**
@@ -81,13 +149,12 @@ public class ResourceUtil {
      * @param hostName The dotCMS instance url
      * @param dotCMSAPIKey API Key to access the Content API
      * @param title The title of the content
-     * @param author The author of the content
      * @return String Content Identifier
     */
-    public final String searchContentIdentifier(final String hostName, final String dotCMSAPIKey, final String title, final String author) {
+    public final String searchContentIdentifier(final String hostName, final String dotCMSAPIKey, final String title) {
         String contentIdentifier = "";
         try {
-		    final JSONObject responseBody = this.obtainContentFromDotCMS(hostName, dotCMSAPIKey, title, author);
+		    final JSONObject responseBody = this.obtainContentFromDotCMS(hostName, dotCMSAPIKey, title);
 
             if(responseBody.has("entity")) {
                 final JSONObject entity = responseBody.getJSONObject("entity");
@@ -101,9 +168,7 @@ public class ResourceUtil {
                                 final JSONObject contentlet = contentlets.getJSONObject(i);
                                 
                                 // Look for a extact match
-                                if(contentlet.optString("title", "").equalsIgnoreCase(title) ||
-                                (contentlet.optString("author", "").equalsIgnoreCase(author))
-                                ) {
+                                if(contentlet.optString("title", "").equalsIgnoreCase(title)) {
                                     contentIdentifier = contentlet.optString("identifier", "");
                                     break;
                                 }
@@ -134,11 +199,10 @@ public class ResourceUtil {
      * @param hostName The dotCMS instance url
      * @param dotCMSAPIKey API Key to access the Content API
      * @param title The title of the content
-     * @param author The author of the content
      * @return JSONObject List of dotCMS objects
      * @throws JSONException
      */
-    public final JSONObject obtainContentFromDotCMS(final String hostName, final String dotCMSAPIKey, final String title, final String author) throws JSONException {
+    public final JSONObject obtainContentFromDotCMS(final String hostName, final String dotCMSAPIKey, final String title) throws JSONException {
         final String url = hostName + "/api/content/_search";
         JSONObject responseBody = new JSONObject("{}");
 
@@ -147,10 +211,6 @@ public class ResourceUtil {
 
             if(title.length() > 0) {
                 query = query + "title:" + title + "*" + " ";
-            }
-
-            if(author.length() > 0) {
-                query = query + "author:" + author + "*" + " ";
             }
 
             if(query.length() == 0 ){
@@ -191,12 +251,12 @@ public class ResourceUtil {
      * @param hostName The dotCMS instance url
      * @param dotCMSAPIKey API Key to access the Content API
      * @param dotCMSContent Partial payload needed to invoke the dotCMS crud API 
-     * @param contentTypeVariableName Variable name of the content type
+     * @param contentTypeObject Contains the dotCMS content type variable name and fields associated with it
      * @return String Empty string on success, else an errror message
      * @throws IOException
      * @throws JSONException
      */
-    public final String saveOperation(final String hostName, final String dotCMSAPIKey, final JSONObject dotCMSContent, final String contentTypeVariableName) throws IOException, JSONException {
+    public final String saveOperation(final String hostName, final String dotCMSAPIKey, final JSONObject dotCMSContent, final JSONObject contentTypeObject) throws IOException, JSONException {
 
         String apiResponse = "Unable to process save request";
 
@@ -216,33 +276,43 @@ public class ResourceUtil {
                 urlTitle = urlTitle.replaceAll(" ", "-").replaceAll("\\s+", "");
             }
 
+            final String contentTypeVariableName = contentTypeObject.optString("variableName", "");
+            final JSONObject contentTypeFields = contentTypeObject.optJSONObject("fields");
+            if(contentTypeFields == null) {
+                throw new Exception("No content type fields found");
+            }
+
             JSONObject contentletObject = new JSONObject();
             contentletObject.put("contentType", contentTypeVariableName);
-            contentletObject.put("title", dotCMSContent.optString("title", defaultTitle));
-            contentletObject.put("body", dotCMSContent.optString("body", ""));
-            contentletObject.put("author", dotCMSContent.optString("author", "Default Author"));
-            contentletObject.put("urlTitle", urlTitle);
 
-            // Handle optional publishDate
-            if(dotCMSContent.has("publishDate")) {
-                contentletObject.put("publishDate", dotCMSContent.getString("publishDate"));
-            }
-            else {
-                contentletObject.put("publishDate", publishDate);
+            Iterator<?> contentTypeFieldKeys = contentTypeFields.keys();
+            while(contentTypeFieldKeys.hasNext()) {
+                final String fieldVariableName = (String) contentTypeFieldKeys.next();
+                final JSONObject fieldObject = contentTypeFields.getJSONObject(fieldVariableName);
+
+                final String fieldDataType = fieldObject.optString("dataType", "");
+                final boolean isReadOnlyField = fieldObject.optBoolean("readOnly", false);
+
+                if(dotCMSContent.has(fieldVariableName)) {
+                    if(!isReadOnlyField) {
+                        if(fieldDataType.equalsIgnoreCase("DATE")) {
+                            ContentParser contentParser = new ContentParser();
+
+                            final String dateText = dotCMSContent.getString(fieldVariableName);
+                            final String fieldDate = contentParser.parseDate(dateText);
+                            
+                            // Place in the JSON only if it is a valid date
+                            if(fieldDate.length() > 0) {
+                                contentletObject.put(fieldVariableName, fieldDate);
+                            }
+                        }
+                        else {
+                            contentletObject.put(fieldVariableName, dotCMSContent.getString(fieldVariableName));
+                        }
+                    }
+                }
             }
 
-            // Handle optional parameters from Zapier
-            if(dotCMSContent.has("siteOrFolder")) {
-                contentletObject.put("siteOrFolder", dotCMSContent.optString("siteOrFolder", ""));
-            }
-            else {
-                contentletObject.put("siteOrFolder", hostName.replace("https://", ""));
-            }
-            
-            if(dotCMSContent.has("tags")) {
-                contentletObject.put("tags", dotCMSContent.optString("tags", ""));
-            }
-        
             JSONObject body = new JSONObject();
             body.put("actionName", "save");
             body.put("contentlet", contentletObject);
@@ -265,34 +335,49 @@ public class ResourceUtil {
      * @param dotCMSAPIKey API Key to access the Content API
      * @param contentIdentifier Unique id for the content on dotCMS
      * @param dotCMSContent Partial payload needed to invoke the dotCMS crud API
+     * @param contentTypeObject Contains the dotCMS content type variable name and fields associated with it
      * @return String Empty string on success, else an errror message
      * @throws IOException
      * @throws JSONException
      */
-    public final String editOperation(final String hostName, final String dotCMSAPIKey, final String contentIdentifier, final JSONObject dotCMSContent) throws IOException, JSONException {
+    public final String editOperation(final String hostName, final String dotCMSAPIKey, final String contentIdentifier, final JSONObject dotCMSContent, final JSONObject contentTypeObject) throws IOException, JSONException {
         String apiResponse = "Unable to process edit request";
 
         try {
+            final JSONObject contentTypeFields = contentTypeObject.optJSONObject("fields");
+            if(contentTypeFields == null) {
+                throw new Exception("No content type fields found");
+            }
+
             JSONObject contentletObject = new JSONObject();
             contentletObject.put("identifier", contentIdentifier);
 
-            if(dotCMSContent.has("title")) {
-                final String urlTitle = dotCMSContent.optString("title", "").replaceAll(" ", "-").replaceAll("\\s+", "");
+            Iterator<?> contentTypeFieldKeys = contentTypeFields.keys();
+            while(contentTypeFieldKeys.hasNext()) {
+                final String fieldVariableName = (String) contentTypeFieldKeys.next();
+                final JSONObject fieldObject = contentTypeFields.getJSONObject(fieldVariableName);
 
-                contentletObject.put("title", dotCMSContent.optString("title", ""));
-                contentletObject.put("urlTitle", urlTitle);
-            }
+                final String fieldDataType = fieldObject.optString("dataType", "");
+                final boolean isReadOnlyField = fieldObject.optBoolean("readOnly", false);
 
-            if(dotCMSContent.has("body")) {
-                contentletObject.put("body", dotCMSContent.optString("body", ""));
-            }
+                if(dotCMSContent.has(fieldVariableName)) {
+                    if(!isReadOnlyField) {
+                        if(fieldDataType.equalsIgnoreCase("DATE")) {
+                            ContentParser contentParser = new ContentParser();
 
-            if(dotCMSContent.has("author")) {
-                contentletObject.put("author", dotCMSContent.optString("author", ""));
-            }
-            
-            if(dotCMSContent.has("tags")) {
-                contentletObject.put("siteOrFolder", dotCMSContent.optString("tags", ""));
+                            final String dateText = dotCMSContent.getString(fieldVariableName);
+                            final String fieldDate = contentParser.parseDate(dateText);
+                            
+                            // Place in the JSON only if it is a valid date
+                            if(fieldDate.length() > 0) {
+                                contentletObject.put(fieldVariableName, fieldDate);
+                            }
+                        }
+                        else {
+                            contentletObject.put(fieldVariableName, dotCMSContent.getString(fieldVariableName));
+                        }
+                    }
+                }
             }
         
             JSONObject body = new JSONObject();
@@ -373,6 +458,8 @@ public class ResourceUtil {
      */
     private final String apiOperation(final String hostName, final String dotCMSAPIKey, final JSONObject body) throws IOException, JSONException {
         String apiResponse = "Unable to process dotCMS API";
+
+        Logger.info(this, "CRUD API Payload" + body.toString());
 
         try {
             final String url = hostName + "/api/v1/workflow/actions/fire";
@@ -508,13 +595,20 @@ public class ResourceUtil {
             File filePath = bundleContext.getDataFile(ResourceUtil.webhookUrls);
 
             File file = new File(filePath.toPath().toAbsolutePath().toString());
-            FileInputStream fileInputStream = new FileInputStream(filePath);
-            byte[] data = new byte[(int) file.length()];
-            fileInputStream.read(data);
-            fileInputStream.close();
-
-            String jsonString = new String(data);
-            result = new JSONObject(jsonString);
+            
+            // Read the JSON data from file if it exists
+            if(file.exists()) {
+                FileInputStream fileInputStream = new FileInputStream(filePath);
+                byte[] data = new byte[(int) file.length()];
+                fileInputStream.read(data);
+                fileInputStream.close();
+    
+                String jsonString = new String(data);
+                result = new JSONObject(jsonString);
+            }
+            else {
+                Logger.info(this, "No Zapier action file exists");
+            }
         }
         catch (Exception e) {
             e.printStackTrace();
