@@ -1,0 +1,964 @@
+{
+	"info": {
+		"_postman_id": "798cc722-3f32-4eae-8334-d575631cc4bb",
+		"name": "DotZapierResource",
+		"description": "The url for these tests would be the dotCMS instance url and the token is the api key of the user",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code should be 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Validate Body\", function () {",
+							"    pm.response.to.be.ok;",
+							"    pm.response.to.be.withBody;",
+							"    pm.response.to.be.json;",
+							"",
+							"    const responseBody = pm.response.json();",
+							"",
+							"    pm.expect(responseBody, 'entity key needs to be present in the response').haveOwnProperty('entity');",
+							"",
+							"    pm.expect(responseBody.entity, 'server key needs to be present in the entity dictionary').haveOwnProperty('server');",
+							"",
+							"    pm.expect(responseBody.entity.server).to.equal(\"online\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/{{dotZapier}}/health",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"{{dotZapier}}",
+						"health"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "Health",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{dotZapier}}/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"{{dotZapier}}",
+								"health"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "X-Frame-Options",
+							"value": "SAMEORIGIN"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "x-dot-server",
+							"value": "431f996cf6c2|8d60b93704"
+						},
+						{
+							"key": "Access-Control-Allow-Origin",
+							"value": "*"
+						},
+						{
+							"key": "Access-Control-Allow-Methods",
+							"value": "GET,PUT,POST,DELETE,HEAD,OPTIONS,PATCH"
+						},
+						{
+							"key": "Access-Control-Allow-Credentials",
+							"value": "true"
+						},
+						{
+							"key": "Access-Control-Allow-Headers",
+							"value": "*"
+						},
+						{
+							"key": "Access-Control-Expose-Headers",
+							"value": "*"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "no-cache, no-store, must-revalidate"
+						},
+						{
+							"key": "Pragma",
+							"value": "no-cache"
+						},
+						{
+							"key": "Expires",
+							"value": "Mon, 26 Jul 1997 05:00:00 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Content-Length",
+							"value": "94"
+						},
+						{
+							"key": "Date",
+							"value": "Sun, 16 Oct 2022 09:40:18 GMT"
+						},
+						{
+							"key": "Keep-Alive",
+							"value": "timeout=3"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"entity\": {\n        \"server\": \"online\"\n    },\n    \"errors\": [],\n    \"i18nMessagesMap\": {},\n    \"messages\": [],\n    \"permissions\": []\n}"
+				}
+			]
+		},
+		{
+			"name": "Auth Health",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code should be 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Validate Body\", function () {",
+							"    pm.response.to.be.ok;",
+							"    pm.response.to.be.withBody;",
+							"    pm.response.to.be.json;",
+							"",
+							"    const responseBody = pm.response.json();",
+							"",
+							"    pm.expect(responseBody, 'entity key needs to be present in the response').haveOwnProperty('entity');",
+							"",
+							"    pm.expect(responseBody.entity, 'user key needs to be present in the entity dictionary').haveOwnProperty('user');",
+							"",
+							"    pm.expect(responseBody.entity.user).to.equal(\"authenticated\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "authorization",
+						"value": "Bearer {{token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/{{dotZapier}}/auth-health",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"{{dotZapier}}",
+						"auth-health"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "Auth Health",
+					"originalRequest": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "authorization",
+								"value": "Bearer {{token}}",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{dotZapier}}/auth-health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"{{dotZapier}}",
+								"auth-health"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "X-Frame-Options",
+							"value": "SAMEORIGIN"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "x-dot-server",
+							"value": "431f996cf6c2|8d60b93704"
+						},
+						{
+							"key": "Access-Control-Allow-Origin",
+							"value": "*"
+						},
+						{
+							"key": "Access-Control-Allow-Methods",
+							"value": "GET,PUT,POST,DELETE,HEAD,OPTIONS,PATCH"
+						},
+						{
+							"key": "Access-Control-Allow-Credentials",
+							"value": "true"
+						},
+						{
+							"key": "Access-Control-Allow-Headers",
+							"value": "*"
+						},
+						{
+							"key": "Access-Control-Expose-Headers",
+							"value": "*"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "no-cache, no-store, must-revalidate"
+						},
+						{
+							"key": "Pragma",
+							"value": "no-cache"
+						},
+						{
+							"key": "Expires",
+							"value": "Mon, 26 Jul 1997 05:00:00 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Content-Length",
+							"value": "99"
+						},
+						{
+							"key": "Date",
+							"value": "Sun, 16 Oct 2022 09:57:23 GMT"
+						},
+						{
+							"key": "Keep-Alive",
+							"value": "timeout=3"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"entity\": {\n        \"user\": \"authenticated\"\n    },\n    \"errors\": [],\n    \"i18nMessagesMap\": {},\n    \"messages\": [],\n    \"permissions\": []\n}"
+				}
+			]
+		},
+		{
+			"name": "Perform List",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code should be 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Validate Body\", function () {",
+							"    pm.response.to.be.ok;",
+							"    pm.response.to.be.withBody;",
+							"    pm.response.to.be.json;",
+							"",
+							"    const responseBody = pm.response.json();",
+							"    ",
+							"    pm.expect(responseBody, 'data key needs to be present in the response').haveOwnProperty('data');",
+							"    pm.expect(responseBody.data, 'data key needs to be a string').to.be.an('string');",
+							"",
+							"    const data = JSON.parse(responseBody.data);",
+							"    pm.expect(data, 'Parsed data key needs to be an array').to.be.an('array');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "authorization",
+						"value": "Bearer {{token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/{{dotZapier}}/perform-list",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"{{dotZapier}}",
+						"perform-list"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "Perform List",
+					"originalRequest": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "authorization",
+								"value": "Bearer {{token}}",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{dotZapier}}/perform-list",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"{{dotZapier}}",
+								"perform-list"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "X-Frame-Options",
+							"value": "SAMEORIGIN"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "x-dot-server",
+							"value": "431f996cf6c2|8d60b93704"
+						},
+						{
+							"key": "Access-Control-Allow-Origin",
+							"value": "*"
+						},
+						{
+							"key": "Access-Control-Allow-Methods",
+							"value": "GET,PUT,POST,DELETE,HEAD,OPTIONS,PATCH"
+						},
+						{
+							"key": "Access-Control-Allow-Credentials",
+							"value": "true"
+						},
+						{
+							"key": "Access-Control-Allow-Headers",
+							"value": "*"
+						},
+						{
+							"key": "Access-Control-Expose-Headers",
+							"value": "*"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "no-cache, no-store, must-revalidate"
+						},
+						{
+							"key": "Pragma",
+							"value": "no-cache"
+						},
+						{
+							"key": "Expires",
+							"value": "Mon, 26 Jul 1997 05:00:00 GMT"
+						},
+						{
+							"key": "vary",
+							"value": "accept-encoding"
+						},
+						{
+							"key": "Content-Encoding",
+							"value": "gzip"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Date",
+							"value": "Sun, 16 Oct 2022 09:57:39 GMT"
+						},
+						{
+							"key": "Keep-Alive",
+							"value": "timeout=3"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"data\": \"[{\\\"owner\\\":\\\"dotcms.org.1\\\",\\\"identifier\\\":\\\"feaf164aeeb86debbfa3b489ae15b715\\\",\\\"hostName\\\":\\\"default\\\",\\\"modDate\\\":\\\"2022-10-16 09:42:49.333\\\",\\\"title\\\":\\\"Lorem Ipsum\\\",\\\"url\\\":\\\"/content.c521dff2-4f02-42e2-a379-d4db9d996ca1\\\",\\\"modUserName\\\":\\\"Admin User\\\",\\\"archived\\\":false,\\\"working\\\":true,\\\"id\\\":\\\"feaf164aeeb86debbfa3b489ae15b715\\\",\\\"locked\\\":false,\\\"contentType\\\":\\\"Hello\\\",\\\"live\\\":false},{\\\"owner\\\":\\\"dotcms.org.1\\\",\\\"identifier\\\":\\\"b32973187745f7e763b6f67d2a2f656a\\\",\\\"hostName\\\":\\\"default\\\",\\\"modDate\\\":\\\"2022-10-16 09:42:48.493\\\",\\\"title\\\":\\\"Lorem Ipsum\\\",\\\"url\\\":\\\"/content.69893f1a-f6cc-45a5-b4d2-037076468cff\\\",\\\"modUserName\\\":\\\"Admin User\\\",\\\"archived\\\":false,\\\"working\\\":true,\\\"id\\\":\\\"b32973187745f7e763b6f67d2a2f656a\\\",\\\"locked\\\":false,\\\"contentType\\\":\\\"Hello\\\",\\\"live\\\":false},{\\\"owner\\\":\\\"dotcms.org.1\\\",\\\"identifier\\\":\\\"b110030336fab0a9b885c9b73a014089\\\",\\\"hostName\\\":\\\"default\\\",\\\"modDate\\\":\\\"2022-10-16 09:13:04.086\\\",\\\"title\\\":\\\"Lorem Ipsum\\\",\\\"url\\\":\\\"/content.980ea9da-59f4-4546-88d8-c84c1e08852d\\\",\\\"modUserName\\\":\\\"Admin User\\\",\\\"archived\\\":false,\\\"working\\\":true,\\\"id\\\":\\\"b110030336fab0a9b885c9b73a014089\\\",\\\"locked\\\":false,\\\"contentType\\\":\\\"Hello\\\",\\\"live\\\":false},{\\\"owner\\\":\\\"dotcms.org.1\\\",\\\"identifier\\\":\\\"1a8d556a66b04f8da375e4e91cb646d1\\\",\\\"hostName\\\":\\\"default\\\",\\\"modDate\\\":\\\"2022-10-16 08:54:45.79\\\",\\\"title\\\":\\\"Lorem Ipsum 8\\\",\\\"url\\\":\\\"/content.cf5a39c4-d539-4ba0-957d-7fd8e2ecc77d\\\",\\\"modUserName\\\":\\\"Admin User\\\",\\\"archived\\\":true,\\\"working\\\":true,\\\"id\\\":\\\"1a8d556a66b04f8da375e4e91cb646d1\\\",\\\"locked\\\":false,\\\"contentType\\\":\\\"Hello\\\",\\\"live\\\":false},{\\\"owner\\\":\\\"dotcms.org.1\\\",\\\"identifier\\\":\\\"f026a2e1bae3fc6f4be27dbc7d1da76f\\\",\\\"hostName\\\":\\\"default\\\",\\\"modDate\\\":\\\"2022-10-16 08:54:23.26\\\",\\\"title\\\":\\\"Lorem Ipsum 8\\\",\\\"url\\\":\\\"/content.ede0848a-8c81-4771-aa14-91aae8301685\\\",\\\"modUserName\\\":\\\"Admin User\\\",\\\"archived\\\":true,\\\"working\\\":true,\\\"id\\\":\\\"f026a2e1bae3fc6f4be27dbc7d1da76f\\\",\\\"locked\\\":false,\\\"contentType\\\":\\\"Hello\\\",\\\"live\\\":false},{\\\"owner\\\":\\\"dotcms.org.1\\\",\\\"identifier\\\":\\\"96970a28c00a7f35013ded311ccc7475\\\",\\\"hostName\\\":\\\"default\\\",\\\"modDate\\\":\\\"2022-10-16 08:50:43.381\\\",\\\"title\\\":\\\"Lorem Ipsum 8\\\",\\\"url\\\":\\\"/content.41f0e2de-c610-4bc5-981a-50234256e0b3\\\",\\\"modUserName\\\":\\\"Admin User\\\",\\\"archived\\\":true,\\\"working\\\":true,\\\"id\\\":\\\"96970a28c00a7f35013ded311ccc7475\\\",\\\"locked\\\":false,\\\"contentType\\\":\\\"Hello\\\",\\\"live\\\":false},{\\\"owner\\\":\\\"dotcms.org.1\\\",\\\"identifier\\\":\\\"82e17cd3743873bd5cb4b5e8e6ea4acb\\\",\\\"hostName\\\":\\\"default\\\",\\\"modDate\\\":\\\"2022-10-16 08:32:13.942\\\",\\\"title\\\":\\\"Lorem Ipsum 7\\\",\\\"url\\\":\\\"/content.f170f47a-5fd7-43ad-9ebd-524dd6191178\\\",\\\"modUserName\\\":\\\"Admin User\\\",\\\"archived\\\":false,\\\"working\\\":true,\\\"id\\\":\\\"82e17cd3743873bd5cb4b5e8e6ea4acb\\\",\\\"locked\\\":false,\\\"contentType\\\":\\\"Hello\\\",\\\"live\\\":false},{\\\"owner\\\":\\\"dotcms.org.1\\\",\\\"identifier\\\":\\\"7087f80652668eea31358b45bf6b7841\\\",\\\"hostName\\\":\\\"default\\\",\\\"modDate\\\":\\\"2022-10-08 13:00:30.809\\\",\\\"title\\\":\\\"FIrst title\\\",\\\"url\\\":\\\"/content.1a99a4ff-2249-46e6-aa11-dbd16023a896\\\",\\\"modUserName\\\":\\\"Admin User\\\",\\\"archived\\\":true,\\\"working\\\":true,\\\"id\\\":\\\"7087f80652668eea31358b45bf6b7841\\\",\\\"locked\\\":false,\\\"contentType\\\":\\\"MyBlog\\\",\\\"live\\\":false},{\\\"owner\\\":\\\"dotcms.org.1\\\",\\\"identifier\\\":\\\"602c6958c9c4325b347ca26f7ac582ff\\\",\\\"hostName\\\":\\\"default\\\",\\\"modDate\\\":\\\"2022-10-08 08:15:08.168\\\",\\\"title\\\":\\\"Second_title\\\",\\\"url\\\":\\\"/content.23b13b22-553c-4614-8987-e8de5cf68370\\\",\\\"modUserName\\\":\\\"Admin User\\\",\\\"archived\\\":false,\\\"working\\\":true,\\\"id\\\":\\\"602c6958c9c4325b347ca26f7ac582ff\\\",\\\"locked\\\":true,\\\"contentType\\\":\\\"MyBlog\\\",\\\"live\\\":true},{\\\"owner\\\":\\\"dotcms.org.1\\\",\\\"identifier\\\":\\\"97484802ec1482d63635ef5fe15767da\\\",\\\"hostName\\\":\\\"default\\\",\\\"modDate\\\":\\\"2021-08-12 19:43:51.362\\\",\\\"title\\\":\\\"dotasset.vtl\\\",\\\"url\\\":\\\"/application/containers/default/dotasset.vtl\\\",\\\"modUserName\\\":\\\"Admin User\\\",\\\"archived\\\":false,\\\"working\\\":true,\\\"id\\\":\\\"97484802ec1482d63635ef5fe15767da\\\",\\\"locked\\\":false,\\\"contentType\\\":\\\"FileAsset\\\",\\\"live\\\":true}]\"\n}"
+				}
+			]
+		},
+		{
+			"name": "UnSubscribe",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code should be 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Validate Body\", function () {",
+							"    pm.response.to.be.ok;",
+							"    pm.response.to.be.withBody;",
+							"    pm.response.to.be.json;",
+							"",
+							"    const responseBody = pm.response.json();",
+							"",
+							"    pm.expect(responseBody, 'entity key needs to be present in the response').haveOwnProperty('entity');",
+							"",
+							"    pm.expect(responseBody.entity, 'message key needs to be present in the entity dictionary').haveOwnProperty('message');",
+							"",
+							"    pm.expect(responseBody.entity.message).to.equal(\"Zapier hook removed\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "authorization",
+						"value": "Bearer {{token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/{{dotZapier}}/unsubscribe?triggerName=publish",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"{{dotZapier}}",
+						"unsubscribe"
+					],
+					"query": [
+						{
+							"key": "triggerName",
+							"value": "publish"
+						}
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "UnSubscribe",
+					"originalRequest": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "authorization",
+								"value": "Bearer {{token}}",
+								"type": "default"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/{{dotZapier}}/unsubscribe?triggerName=publish",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"{{dotZapier}}",
+								"unsubscribe"
+							],
+							"query": [
+								{
+									"key": "triggerName",
+									"value": "publish"
+								}
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "X-Frame-Options",
+							"value": "SAMEORIGIN"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "x-dot-server",
+							"value": "431f996cf6c2|8d60b93704"
+						},
+						{
+							"key": "Access-Control-Allow-Origin",
+							"value": "*"
+						},
+						{
+							"key": "Access-Control-Allow-Methods",
+							"value": "GET,PUT,POST,DELETE,HEAD,OPTIONS,PATCH"
+						},
+						{
+							"key": "Access-Control-Allow-Credentials",
+							"value": "true"
+						},
+						{
+							"key": "Access-Control-Allow-Headers",
+							"value": "*"
+						},
+						{
+							"key": "Access-Control-Expose-Headers",
+							"value": "*"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "no-cache, no-store, must-revalidate"
+						},
+						{
+							"key": "Pragma",
+							"value": "no-cache"
+						},
+						{
+							"key": "Expires",
+							"value": "Mon, 26 Jul 1997 05:00:00 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Content-Length",
+							"value": "108"
+						},
+						{
+							"key": "Date",
+							"value": "Sun, 16 Oct 2022 10:14:45 GMT"
+						},
+						{
+							"key": "Keep-Alive",
+							"value": "timeout=3"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"entity\": {\n        \"message\": \"Zapier hook removed\"\n    },\n    \"errors\": [],\n    \"i18nMessagesMap\": {},\n    \"messages\": [],\n    \"permissions\": []\n}"
+				}
+			]
+		},
+		{
+			"name": "Subscribe",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code should be 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Validate Body\", function () {",
+							"    pm.response.to.be.ok;",
+							"    pm.response.to.be.withBody;",
+							"    pm.response.to.be.json;",
+							"",
+							"    const responseBody = pm.response.json();",
+							"",
+							"    pm.expect(responseBody, 'entity key needs to be present in the response').haveOwnProperty('entity');",
+							"",
+							"    pm.expect(responseBody.entity, 'message key needs to be present in the entity dictionary').haveOwnProperty('message');",
+							"",
+							"    pm.expect(responseBody.entity.message).to.equal(\"Zapier hook added\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "authorization",
+						"value": "Bearer {{token}}",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"url\": \"https://hooks.zapier.com/123456/5865b724d7a4\",\n    \"triggerName\": \"publish\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/{{dotZapier}}/subscribe",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"{{dotZapier}}",
+						"subscribe"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "Subscribe",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "authorization",
+								"value": "Bearer {{token}}",
+								"type": "default"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"url\": \"https://hooks.zapier.com/123456/5865b724d7a4\",\n    \"triggerName\": \"publish\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/{{dotZapier}}/subscribe",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"{{dotZapier}}",
+								"subscribe"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "X-Frame-Options",
+							"value": "SAMEORIGIN"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "x-dot-server",
+							"value": "431f996cf6c2|8d60b93704"
+						},
+						{
+							"key": "Access-Control-Allow-Origin",
+							"value": "*"
+						},
+						{
+							"key": "Access-Control-Allow-Methods",
+							"value": "GET,PUT,POST,DELETE,HEAD,OPTIONS,PATCH"
+						},
+						{
+							"key": "Access-Control-Allow-Credentials",
+							"value": "true"
+						},
+						{
+							"key": "Access-Control-Allow-Headers",
+							"value": "*"
+						},
+						{
+							"key": "Access-Control-Expose-Headers",
+							"value": "*"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "no-cache, no-store, must-revalidate"
+						},
+						{
+							"key": "Pragma",
+							"value": "no-cache"
+						},
+						{
+							"key": "Expires",
+							"value": "Mon, 26 Jul 1997 05:00:00 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Content-Length",
+							"value": "106"
+						},
+						{
+							"key": "Date",
+							"value": "Sun, 16 Oct 2022 10:18:16 GMT"
+						},
+						{
+							"key": "Keep-Alive",
+							"value": "timeout=3"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"entity\": {\n        \"message\": \"Zapier hook added\"\n    },\n    \"errors\": [],\n    \"i18nMessagesMap\": {},\n    \"messages\": [],\n    \"permissions\": []\n}"
+				}
+			]
+		},
+		{
+			"name": "Action Save",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code should be 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Validate Body\", function () {",
+							"    pm.response.to.be.ok;",
+							"    pm.response.to.be.withBody;",
+							"    pm.response.to.be.json;",
+							"",
+							"    const responseBody = pm.response.json();",
+							"",
+							"    pm.expect(responseBody, 'message key needs to be present in the response').haveOwnProperty('message');",
+							"",
+							"    pm.expect(responseBody.message).to.equal(\"save process successfully executed\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "authorization",
+						"value": "Bearer {{token}}",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"contentType\": \"My Blog\",\n    \"text\": \"#save #title=\\\"Lorem Ipsum\\\" #author=\\\"John Doe\\\" #publishDate=\\\"Sep 30 2022\\\" Lorem Ipsum is simply dummy text of the printing and typesetting industry\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/{{dotZapier}}/action",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"{{dotZapier}}",
+						"action"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "Action Save",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "authorization",
+								"value": "Bearer {{token}}",
+								"type": "default"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"contentType\": \"My Blog\",\n    \"text\": \"#save #title=\\\"Lorem Ipsum\\\" #author=\\\"John Doe\\\" #publishDate=\\\"Sep 30 2022\\\" Lorem Ipsum is simply dummy text of the printing and typesetting industry\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/{{dotZapier}}/action",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"{{dotZapier}}",
+								"action"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "X-Frame-Options",
+							"value": "SAMEORIGIN"
+						},
+						{
+							"key": "X-Content-Type-Options",
+							"value": "nosniff"
+						},
+						{
+							"key": "X-XSS-Protection",
+							"value": "1; mode=block"
+						},
+						{
+							"key": "x-dot-server",
+							"value": "431f996cf6c2|8d60b93704"
+						},
+						{
+							"key": "Access-Control-Allow-Origin",
+							"value": "*"
+						},
+						{
+							"key": "Access-Control-Allow-Methods",
+							"value": "GET,PUT,POST,DELETE,HEAD,OPTIONS,PATCH"
+						},
+						{
+							"key": "Access-Control-Allow-Credentials",
+							"value": "true"
+						},
+						{
+							"key": "Access-Control-Allow-Headers",
+							"value": "*"
+						},
+						{
+							"key": "Access-Control-Expose-Headers",
+							"value": "*"
+						},
+						{
+							"key": "Cache-Control",
+							"value": "no-cache, no-store, must-revalidate"
+						},
+						{
+							"key": "Pragma",
+							"value": "no-cache"
+						},
+						{
+							"key": "Expires",
+							"value": "Mon, 26 Jul 1997 05:00:00 GMT"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Content-Length",
+							"value": "39"
+						},
+						{
+							"key": "Date",
+							"value": "Sun, 16 Oct 2022 09:58:23 GMT"
+						},
+						{
+							"key": "Keep-Alive",
+							"value": "timeout=3"
+						},
+						{
+							"key": "Connection",
+							"value": "keep-alive"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"message\": \"save process successfully executed\"\n}"
+				}
+			]
+		}
+	]
+}
