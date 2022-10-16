@@ -7,6 +7,12 @@
  * Import all the triggers and create Zapier operation
 */
 const publishTrigger = require('./triggers/publish');
+const unpublishTrigger = require('./triggers/unpublish');
+const saveTrigger = require('./triggers/save');
+const archiveTrigger = require('./triggers/archive');
+const unarchiveTrigger = require('./triggers/unarchive');
+const deleteTrigger = require('./triggers/delete');
+const destroyTrigger = require('./triggers/destroy');
 
 const cmdOperation = require('./creates/cmdOperation');
 
@@ -68,7 +74,13 @@ const App = {
   ],
 
   triggers: {
-    [publishTrigger.key]: publishTrigger
+    [saveTrigger.key]: saveTrigger,
+    [publishTrigger.key]: publishTrigger,
+    [archiveTrigger.key]: archiveTrigger,
+    [unarchiveTrigger.key]: unarchiveTrigger,
+    [unpublishTrigger.key]: unpublishTrigger,
+    [deleteTrigger.key]: deleteTrigger,
+    [destroyTrigger.key]: destroyTrigger
   },
 
   creates: {
