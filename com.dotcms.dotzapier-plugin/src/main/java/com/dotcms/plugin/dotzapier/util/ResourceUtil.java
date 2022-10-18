@@ -532,6 +532,47 @@ public class ResourceUtil {
     }
 
     /**
+     * Obtains the contentlet data from content identifier via dotCMS API
+     * @param hostName The dotCMS instance url
+     * @param contentIdentifier Unique id for the content on dotCMS
+     * @return JSONObject Contains the contentlet data
+    */
+    public JSONObject getContentletData(final String hostName, final String contentIdentifier) {
+        JSONObject contentletData = new JSONObject();
+
+        try {
+            final String url = hostName + "/api/content/id/" + contentIdentifier;
+
+            HttpClient httpClient = HttpClients.createDefault();
+
+            HttpGet request = new HttpGet(url);
+            request.addHeader("content-type", "application/json");
+            request.addHeader("accept", "application/json");
+            HttpResponse response = httpClient.execute(request);
+
+            if(response.getStatusLine().getStatusCode() == 200) {
+                final String jsonString = new String(IOUtils.toByteArray(response.getEntity().getContent()));
+		        final JSONObject responseBody = new JSONObject(jsonString);
+                
+                // Extract the contentlet data from the api response
+                if(responseBody.has("contentlets")) {
+                    final JSONArray contentlets = responseBody.getJSONArray("contentlets");
+                    if(contentlets.length() > 0) {
+                        contentletData = contentlets.getJSONObject(0);
+                    }
+                }
+            }
+        }
+        catch (Exception ex) {
+            contentletData = new JSONObject();
+            Logger.error(this, "Unable to obtain contentlet data");
+            Logger.error(this, ex.getMessage());
+        }
+
+        return contentletData;
+    }
+
+    /**
      * Generates the dotCMS object which needs to be sent out to Zapier. 
      * It contains a subset of all the keys available on the dotCMS content object
      * @param json Raw contentlet object 
