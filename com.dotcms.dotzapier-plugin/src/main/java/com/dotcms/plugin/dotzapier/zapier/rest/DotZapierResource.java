@@ -140,6 +140,13 @@ public class DotZapierResource  {
                         for(int i=0; i< contentlets.length(); i++) {
                             // Obtain the specific keys from the object
                             JSONObject temp = resourceUtil.prepareZapierObject( (JSONObject) contentlets.get(i));
+                            
+                            // Append the domain information to the URL
+                            if(temp.has("url")) {
+                                final String url = resourceUtil.prepareContentletUrl(hostName, temp.getString("url"));
+                                temp.put("url", url);
+                            }
+
                             dotCMSData.put(temp);
                         }
                     }

@@ -99,7 +99,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
      * @return String URL of the content processed in dotCMS
     */
     private final String generateUrl(Contentlet contentlet) {
-        return "";
+        return "Contentlet URL";
     }
 
     /**

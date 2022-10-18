@@ -565,6 +565,17 @@ public class ResourceUtil {
     }
 
     /**
+     * Generates the absolute contentlet url with the instance url
+     * @param hostName The dotCMS instance url
+     * @param contentletUrl Relative url associated with the contentlet
+     * @return String containing Absolute contentlet url
+    */
+    public final String prepareContentletUrl(final String hostName, final String contentletUrl) {
+        final String url = hostName + "/dotAdmin/#/c" + contentletUrl.replace(".", "/");
+        return url;
+    }
+
+    /**
      * Writes data to a JSON file
      * @param jsonObject Data to be writted to file
      */
