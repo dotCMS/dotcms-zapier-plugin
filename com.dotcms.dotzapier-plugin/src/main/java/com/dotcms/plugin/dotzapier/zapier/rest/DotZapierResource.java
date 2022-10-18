@@ -234,6 +234,8 @@ public class DotZapierResource  {
 
         ResourceUtil resourceUtil = new ResourceUtil();
 
+        final String hostName = this.getHostName(request);
+
 		final String jsonString = new String(IOUtils.toByteArray(request.getInputStream()));
 		final JSONObject requestBody = new JSONObject(jsonString);
         
@@ -245,6 +247,10 @@ public class DotZapierResource  {
         
         // Save the Zapier Trigger Data
         final JSONObject zapierTriggerURLS = resourceUtil.readJSON();
+        if(!zapierTriggerURLS.has("url")) {
+            zapierTriggerURLS.put("url", hostName);
+        }
+
         zapierTriggerURLS.put(actionName, triggerURL);
         resourceUtil.writeJSON(zapierTriggerURLS);
 
