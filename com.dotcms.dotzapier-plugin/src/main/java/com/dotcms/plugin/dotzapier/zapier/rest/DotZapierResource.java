@@ -5,38 +5,45 @@
 
 package com.dotcms.plugin.dotzapier.zapier.rest;
 
-import org.apache.commons.io.IOUtils;
-
 import java.io.IOException;
 import java.net.URISyntaxException;
-
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
-import javax.ws.rs.DELETE;
 import javax.ws.rs.Path;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.Produces;
-
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import org.apache.commons.io.IOUtils;
 import com.dotcms.plugin.dotzapier.util.ContentParser;
 import com.dotcms.plugin.dotzapier.util.ResourceUtil;
-
 import com.dotcms.rest.ResponseEntityView;
 import com.dotcms.rest.WebResource;
 import com.dotcms.rest.annotation.NoCache;
+import com.dotcms.security.apps.AppSecrets;
+import com.dotmarketing.beans.Host;
+import com.dotmarketing.business.APILocator;
 import com.dotmarketing.business.DotStateException;
+import com.dotmarketing.business.web.WebAPILocator;
 import com.dotmarketing.exception.DotDataException;
 import com.dotmarketing.exception.DotSecurityException;
+import com.dotmarketing.portlets.contentlet.model.Contentlet;
+import com.dotmarketing.portlets.contentlet.transform.DotContentletTransformer;
+import com.dotmarketing.portlets.contentlet.transform.DotTransformerBuilder;
 import com.dotmarketing.util.Logger;
 import com.dotmarketing.util.json.JSONException;
 import com.dotmarketing.util.json.JSONObject;
-import com.dotmarketing.util.json.JSONArray;
+import com.google.common.collect.ImmutableMap;
 import com.liferay.portal.model.User;
-import jersey.repackaged.com.google.common.collect.ImmutableMap;
 
 @Path("/v1/dotzapier")
 public class DotZapierResource  {
@@ -83,6 +90,9 @@ public class DotZapierResource  {
         return Response.ok(responseEntityView).build();
     }
 
+    
+    
+
     /**
      * This endpoint provides the list of most recent content generated on dotCMS
      * It is consumed by the Zapier perform list operation. It is invoked for each Zap 
@@ -113,55 +123,48 @@ public class DotZapierResource  {
     @Path("/perform-list")
     @NoCache
     @Produces(MediaType.APPLICATION_JSON)
-    public final Response getZapierList(@Context final HttpServletRequest request, @Context final HttpServletResponse response) 
+    public final Response getZapierList(
+                    @Context final HttpServletRequest request, 
+                    @Context final HttpServletResponse response) 
 		throws URISyntaxException, DotStateException, DotDataException, DotSecurityException, JSONException {
 		// Only allow authenticated users
         final User user = new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
         
+        
+        Host host = WebAPILocator.getHostWebAPI().getCurrentHostNoThrow(request);
+        
+        Optional<AppSecrets> secrets = APILocator.getAppsAPI().getSecrets("dotZapier", host, user);
+        
+        String contentTypesStr = secrets.isPresent()
+            ? secrets.get().getSecrets().get("contentTypes").getString()
+            : "webPageContent,dotAsset,fileAsset";
+        
+        List<String> contentTypes  = Arrays.asList(contentTypesStr.split("\\s*,\\s*"));
+        
+        
         Logger.info(this, "Perform List Zapier API invoked");
-        ResourceUtil resourceUtil = new ResourceUtil();
-
-        final String hostName = this.getHostName(request);
-        final String dotCMSAPIKey = request.getHeader("authorization");
         
-        JSONArray dotCMSData = new JSONArray();
+        String contentQuery = "+contentType:(" + String.join(" OR ", contentTypes) + ") +working:true";
         
-        // Invoke the /api/content/_search API to obtain the list of dotCMS objects
-        try {
-            final JSONObject responseBody = resourceUtil.obtainContentFromDotCMS(hostName, dotCMSAPIKey, "");
-            
-            // Obtains the result from the required key
-            if(responseBody.has("entity")) {
-                final JSONObject entity = responseBody.getJSONObject("entity");
-                if(entity.has("jsonObjectView")) {
-                    final JSONObject jsonObjectView = entity.getJSONObject("jsonObjectView");
-                    if(jsonObjectView.has("contentlets")) {
-                        final JSONArray contentlets = jsonObjectView.getJSONArray("contentlets");
-                        for(int i=0; i< contentlets.length(); i++) {
-                            // Obtain the specific keys from the object
-                            JSONObject temp = resourceUtil.prepareZapierObject( (JSONObject) contentlets.get(i));
-                            
-                            // Append the domain information to the URL
-                            if(temp.has("url")) {
-                                final String url = resourceUtil.prepareContentletUrl(hostName, temp.getString("url"));
-                                temp.put("url", url);
-                            }
+        List<Contentlet> contentlets = APILocator.getContentletAPI().search(contentQuery, 0, 3, "moddate desc", user, false);
+        DotContentletTransformer transformer = new DotTransformerBuilder().content(contentlets).defaultOptions().build();
+        
+        List<Map<String,Object>> results = transformer.toMaps()
+                        .stream()
+                        .map(m->{
+                            Map<String,Object> mapCopy = new HashMap<>(m);
+                            mapCopy.put("id", m.get("inode") );
+                            return mapCopy;
+                        })
+                        .collect(Collectors.toList());
 
-                            dotCMSData.put(temp);
-                        }
-                    }
-                }
-            }
-        }
-        catch(Exception ex) {
-            Logger.error(this, "Unable to process getZapierList request");
-            Logger.error(this, ex.getMessage());
-        }
+
+    
+        
         
         // Build the API response
-        JSONObject userResponse = new JSONObject();
-        userResponse.put("data", dotCMSData.toString());
-        return Response.status(200).entity(userResponse).build();
+
+        return Response.status(200).entity(ImmutableMap.of("data",results)).build();
     }
 
     /**
@@ -225,7 +228,9 @@ public class DotZapierResource  {
     @Path("/subscribe")
     @NoCache
     @Produces(MediaType.APPLICATION_JSON)
-    public final Response postSubscribe(@Context final HttpServletRequest request, @Context final HttpServletResponse response) 
+    public final Response postSubscribe(
+                    @Context final HttpServletRequest request, 
+                    @Context final HttpServletResponse response) 
 		throws URISyntaxException, DotStateException, DotDataException, DotSecurityException, IOException, JSONException {
 		// Only allow authenticated users
         final User user = new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
@@ -234,7 +239,8 @@ public class DotZapierResource  {
 
         ResourceUtil resourceUtil = new ResourceUtil();
 
-        final String hostName = this.getHostName(request);
+        final Host host = WebAPILocator.getHostWebAPI().getCurrentHostNoThrow(request);
+        final String hostName = host.getHostname();
 
 		final String jsonString = new String(IOUtils.toByteArray(request.getInputStream()));
 		final JSONObject requestBody = new JSONObject(jsonString);
@@ -293,7 +299,8 @@ public class DotZapierResource  {
 
         ResourceUtil resourceUtil = new ResourceUtil();
 
-        final String hostName = this.getHostName(request);
+        final Host host = WebAPILocator.getHostWebAPI().getCurrentHostNoThrow(request);
+        final String hostName = host.getHostname();
         final String dotCMSAPIKey = request.getHeader("authorization");
 
 		final String jsonString = new String(IOUtils.toByteArray(request.getInputStream()));
@@ -435,11 +442,5 @@ public class DotZapierResource  {
         }
     }
 
-    private String getHostName(final HttpServletRequest request) {
-        final String requestUrl = request.getRequestURL().toString();
-        final String requestUri = request.getRequestURI();
-        final String hostName = requestUrl.replace(requestUri, "");
 
-        return hostName;
-    }
 }

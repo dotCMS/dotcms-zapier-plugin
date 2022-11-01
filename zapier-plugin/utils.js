@@ -98,22 +98,7 @@ const listOperation = async (z, bundle) => {
     });
 };
 
-/**
- * Extracts the keys from the dotCMS content object
- * @param obj dotCMS content object
- * @returns List Contains keys to be displayed to the user on Zapier action
- */
-const obtainOutputFields = (obj) => {
-  const fields = [];
 
-  for(const key in obj) {
-    fields.push({
-      key: key
-    })
-  }
-
-  return fields;
-};
 
 /**
  * dotCMS content object returned by the list operation

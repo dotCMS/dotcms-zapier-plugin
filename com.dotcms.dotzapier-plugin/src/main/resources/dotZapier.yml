@@ -1,14 +1,13 @@
 ---
 name: "dotZapier"
-description: "This app connects your dotCMS instance with Zapier. It acts as a web server to receive requests from Zapier actions and sends out content for Zapier triggers."
+description: "This app connects your dotCMS instance with Zapier. It allows you to configure what content objects you want to expose to Zapier Zaps"
 iconUrl: "https://cdn.zapier.com/zapier/images/favicon.ico"
 allowExtraParameters: false
 params:
-
-  zapName:
-    label: "Name of the Zap"
-    value: ""
+  contentTypes:
+    label: "Content Types to Expose"
+    value: "webPageContent,dotAsset,fileAsset"
     hidden: true
     type: "STRING"
-    hint: "One can store the name of the Zap"
+    hint: "This is a list of content types whose fields you want to 'expose' to Zapier"
     required: false

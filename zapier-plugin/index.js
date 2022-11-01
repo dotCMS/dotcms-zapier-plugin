@@ -6,14 +6,14 @@
 /**
  * Import all the triggers and create Zapier operation
 */
-const publishTrigger = require('./triggers/publish');
-const unpublishTrigger = require('./triggers/unpublish');
-const saveTrigger = require('./triggers/save');
-const archiveTrigger = require('./triggers/archive');
-const unarchiveTrigger = require('./triggers/unarchive');
-const deleteTrigger = require('./triggers/delete');
-const destroyTrigger = require('./triggers/destroy');
-
+// const publishTrigger = require('./triggers/publish');
+// const unpublishTrigger = require('./triggers/unpublish');
+// const saveTrigger = require('./triggers/save');
+// const archiveTrigger = require('./triggers/archive');
+// const unarchiveTrigger = require('./triggers/unarchive');
+// const deleteTrigger = require('./triggers/delete');
+const workflowTrigger = require('./triggers/workflow-event');
+const contentTypes = require('./triggers/content-types');
 const cmdOperation = require('./creates/cmdOperation');
 
 const authentication = require('./authentication');
@@ -74,13 +74,8 @@ const App = {
   ],
 
   triggers: {
-    [saveTrigger.key]: saveTrigger,
-    [publishTrigger.key]: publishTrigger,
-    [archiveTrigger.key]: archiveTrigger,
-    [unarchiveTrigger.key]: unarchiveTrigger,
-    [unpublishTrigger.key]: unpublishTrigger,
-    [deleteTrigger.key]: deleteTrigger,
-    [destroyTrigger.key]: destroyTrigger
+    [workflowTrigger.key]: workflowTrigger,
+    [contentTypes.key] : contentTypesTrigger
   },
 
   creates: {
