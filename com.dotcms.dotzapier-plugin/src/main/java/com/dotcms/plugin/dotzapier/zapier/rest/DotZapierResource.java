@@ -5,10 +5,13 @@
 
 package com.dotcms.plugin.dotzapier.zapier.rest;
 
+import com.dotcms.plugin.dotzapier.zapier.app.ZapierApp;
+import com.dotcms.plugin.dotzapier.zapier.app.ZapierAppAPI;
 import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -42,6 +45,7 @@ import jersey.repackaged.com.google.common.collect.ImmutableMap;
 public class DotZapierResource  {
 
 	private static final long serialVersionUID = 1L;
+    private final ZapierAppAPI zapierAppAPI = new ZapierAppAPI();
 
 
     /**
@@ -76,7 +80,7 @@ public class DotZapierResource  {
     public final Response getAuthHealth(@Context final HttpServletRequest request, @Context final HttpServletResponse response) 
 		throws URISyntaxException, DotStateException, DotDataException, DotSecurityException {
 		// Only allow authenticated users
-        final User user = new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
+        new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
 
 		final ResponseEntityView responseEntityView = new ResponseEntityView(ImmutableMap.of("user", "authenticated"));
 
@@ -116,7 +120,7 @@ public class DotZapierResource  {
     public final Response getZapierList(@Context final HttpServletRequest request, @Context final HttpServletResponse response) 
 		throws URISyntaxException, DotStateException, DotDataException, DotSecurityException, JSONException {
 		// Only allow authenticated users
-        final User user = new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
+        new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
         
         Logger.info(this, "Perform List Zapier API invoked");
         ResourceUtil resourceUtil = new ResourceUtil();
@@ -193,11 +197,7 @@ public class DotZapierResource  {
         final String actionName = request.getParameter("triggerName"); 
 
         // Update the Zapier Trigger Data
-        final JSONObject zapierTriggerURLS = resourceUtil.readJSON();
-        zapierTriggerURLS.remove(actionName);
-        resourceUtil.writeJSON(zapierTriggerURLS);
-
-        Logger.info(this, "Zapier Details Saved " + zapierTriggerURLS.toString());
+        this.zapierAppAPI.unregisterZap(actionName);
 
         // Build the API response
 		final ResponseEntityView responseEntityView = new ResponseEntityView(ImmutableMap.of("message", "Zapier hook removed"));
@@ -227,18 +227,15 @@ public class DotZapierResource  {
     @Produces(MediaType.APPLICATION_JSON)
     public final Response postSubscribe(@Context final HttpServletRequest request, @Context final HttpServletResponse response) 
 		throws URISyntaxException, DotStateException, DotDataException, DotSecurityException, IOException, JSONException {
+
 		// Only allow authenticated users
-        final User user = new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
+        new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
         
         Logger.info(this, "Subscribe Zapier API invoked");
 
-        ResourceUtil resourceUtil = new ResourceUtil();
-
         final String hostName = this.getHostName(request);
-
 		final String jsonString = new String(IOUtils.toByteArray(request.getInputStream()));
 		final JSONObject requestBody = new JSONObject(jsonString);
-        
         final String actionName = requestBody.optString("triggerName", "");
         final String triggerURL = requestBody.optString("url", "");
 
@@ -246,16 +243,14 @@ public class DotZapierResource  {
         Logger.info(this, "actionName " + actionName);
         
         // Save the Zapier Trigger Data
-        final JSONObject zapierTriggerURLS = resourceUtil.readJSON();
-        if(!zapierTriggerURLS.has("url")) {
-            zapierTriggerURLS.put("url", hostName);
+        final Optional<ZapierApp> zapierApp = this.zapierAppAPI.config();
+        if(!zapierApp.isPresent() || !zapierApp.get().getZapsRegisterMap().containsKey("url")) {
+
+            this.zapierAppAPI.registerZap("url", hostName);
         }
 
-        zapierTriggerURLS.put(actionName, triggerURL);
-        resourceUtil.writeJSON(zapierTriggerURLS);
+        this.zapierAppAPI.registerZap(actionName, triggerURL);
 
-        Logger.info(this, "Zapier Details Saved " + zapierTriggerURLS.toString());
-        
         // Build the API response
         final ResponseEntityView responseEntityView = new ResponseEntityView(ImmutableMap.of("message", "Zapier hook added"));
         return Response.ok(responseEntityView).build();

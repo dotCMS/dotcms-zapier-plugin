@@ -5,6 +5,10 @@
 
 package com.dotcms.plugin.dotzapier.osgi;
 
+import com.dotcms.plugin.dotzapier.util.ResourceUtil;
+import com.dotcms.plugin.dotzapier.zapier.app.ZapierAppAPI;
+import com.dotmarketing.util.json.JSONArray;
+import com.dotmarketing.util.json.JSONObject;
 import org.osgi.framework.BundleContext;
 
 import com.dotcms.plugin.dotzapier.util.AppUtil;
@@ -15,6 +19,8 @@ import com.dotmarketing.osgi.GenericBundleActivator;
 import com.dotmarketing.util.Logger;
 
 public class Activator extends GenericBundleActivator {
+
+	private final ZapierAppAPI zapierAppAPI = new ZapierAppAPI();
 
     /**
      * Starts the OSGi application
@@ -37,6 +43,31 @@ public class Activator extends GenericBundleActivator {
 
 		//Register Actionlet
 		this.registerActionlet(context, new ZapierTriggerActionlet());
+
+		this.migrateCurrentConfig();
+	}
+
+	private void migrateCurrentConfig() {
+
+		ResourceUtil resourceUtil = new ResourceUtil();
+		final JSONObject zapierTriggerURLS = resourceUtil.readJSON();
+		final JSONArray names = zapierTriggerURLS.names();
+
+		if (null != names) {
+			for (int i = 0; i < names.length(); ++i) {
+
+				try {
+
+					final String name = names.getString(i);
+					final String value = zapierTriggerURLS.getString(name);
+					Logger.info(this.getClass().getName(), "migrating the name: " + name + ", value: " + value);
+					this.zapierAppAPI.registerZap(name, value);
+				} catch (Exception e) {
+
+					Logger.error(this.getClass().getName(), e.getMessage(), e);
+				}
+			}
+		}
 	}
 
 	/**
