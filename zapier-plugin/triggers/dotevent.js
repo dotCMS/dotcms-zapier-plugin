@@ -1,10 +1,10 @@
 /**
- * Contains methods for Destroy Zap Trigger
+ * Contains methods for Save Zap Trigger
 */
 
 const utils = require('../utils');
 
-const triggerName = 'destroy';
+const triggerName = 'DotEvent';
 
 /**
  * Sends out the REST URL to dotCMS which is to be invoked for every trigger
@@ -25,10 +25,10 @@ module.exports = {
     key: triggerName,
     noun: 'Content',
     display: {
-        label: 'Destroy Content',
-        description: 'Triggers when a content is destroyed.',
+        label: 'Dot Content Event ',
+        description: 'Triggers when a content is modified.',
         hidden: false,
-        important: false,
+        important: true,
     },
 
     operation: {

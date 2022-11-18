@@ -98,6 +98,9 @@ const listOperation = async (z, bundle) => {
     });
 };
 
+
+
+
 /**
  * Extracts the keys from the dotCMS content object
  * @param obj dotCMS content object

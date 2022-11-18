@@ -5,13 +5,21 @@
 
 package com.dotcms.plugin.dotzapier.zapier.rest;
 
+import com.dotcms.contenttype.model.type.ContentType;
 import com.dotcms.plugin.dotzapier.zapier.app.ZapierApp;
 import com.dotcms.plugin.dotzapier.zapier.app.ZapierAppAPI;
+import com.dotcms.plugin.dotzapier.zapier.content.ContentAPI;
+import com.dotmarketing.business.APILocator;
+import com.dotmarketing.portlets.contentlet.model.Contentlet;
+import io.vavr.control.Try;
 import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -46,7 +54,25 @@ public class DotZapierResource  {
 
 	private static final long serialVersionUID = 1L;
     private final ZapierAppAPI zapierAppAPI = new ZapierAppAPI();
+    private final ContentAPI   contentAPI   = new ContentAPI();
+    private final ContentParser contentParser = new ContentParser();
 
+    /**
+     * This is a public endpoint to verify if the dotZapier plugin is reachable or not
+     *
+     * @return It will return a message
+     * {"server: "online"}
+     */
+    @GET
+    @Path("/hello")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public final Response hello(@Context final HttpServletRequest request, @Context final HttpServletResponse response)
+            throws URISyntaxException, DotStateException, DotDataException, DotSecurityException {
+
+        final ResponseEntityView responseEntityView = new ResponseEntityView(ImmutableMap.of("hello", "all"));
+        return Response.ok(responseEntityView).build();
+    }
 
     /**
      * This is a public endpoint to verify if the dotZapier plugin is reachable or not
@@ -123,48 +149,104 @@ public class DotZapierResource  {
         new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
         
         Logger.info(this, "Perform List Zapier API invoked");
-        ResourceUtil resourceUtil = new ResourceUtil();
-
+        final ResourceUtil resourceUtil = new ResourceUtil();
         final String hostName = this.getHostName(request);
-        final String dotCMSAPIKey = request.getHeader("authorization");
+        final JSONArray dotCMSData = new JSONArray();
         
-        JSONArray dotCMSData = new JSONArray();
-        
-        // Invoke the /api/content/_search API to obtain the list of dotCMS objects
         try {
-            final JSONObject responseBody = resourceUtil.obtainContentFromDotCMS(hostName, dotCMSAPIKey, "");
-            
-            // Obtains the result from the required key
-            if(responseBody.has("entity")) {
-                final JSONObject entity = responseBody.getJSONObject("entity");
-                if(entity.has("jsonObjectView")) {
-                    final JSONObject jsonObjectView = entity.getJSONObject("jsonObjectView");
-                    if(jsonObjectView.has("contentlets")) {
-                        final JSONArray contentlets = jsonObjectView.getJSONArray("contentlets");
-                        for(int i=0; i< contentlets.length(); i++) {
-                            // Obtain the specific keys from the object
-                            JSONObject temp = resourceUtil.prepareZapierObject( (JSONObject) contentlets.get(i));
-                            
-                            // Append the domain information to the URL
-                            if(temp.has("url")) {
-                                final String url = resourceUtil.prepareContentletUrl(hostName, temp.getString("url"));
-                                temp.put("url", url);
-                            }
 
-                            dotCMSData.put(temp);
-                        }
-                    }
+            final List<Contentlet> contentlets = this.contentAPI.contents();
+
+            for (final Contentlet contentlet : contentlets) {
+                // Obtain the specific keys from the object
+                final JSONObject temp = new JSONObject();
+
+                temp.put("id", contentlet.getIdentifier()).put("identifier", contentlet.getIdentifier())
+                        .put("hostName", contentlet.getHost()).put("url", contentlet.get("url"))
+                        .put("contentType", contentlet.getContentType().variable()).put("title", contentlet.getTitle())
+                        .put("modUserName", contentlet.getModUser()).put("owner", contentlet.getOwner())
+                        .put("archived", contentlet.isArchived()).put("working", contentlet.isWorking())
+                        .put("locked", contentlet.isLocked()).put("live", contentlet.isLive())
+                        .put("modDate", contentlet.getModDate());
+
+                // Append the domain information to the URL
+                if (temp.has("url")) {
+                    final String url = resourceUtil.prepareContentletUrl(hostName, temp.getString("url"));
+                    temp.put("url", url);
                 }
+
+                dotCMSData.put(temp);
             }
-        }
-        catch(Exception ex) {
+        } catch(Exception ex) {
             Logger.error(this, "Unable to process getZapierList request");
             Logger.error(this, ex.getMessage());
         }
         
         // Build the API response
-        JSONObject userResponse = new JSONObject();
+        final JSONObject userResponse = new JSONObject();
         userResponse.put("data", dotCMSData.toString());
+        return Response.status(200).entity(userResponse).build();
+    }
+
+    /**
+     * This endpoint provides the list of the types to execute
+     * It is consumed by the Zapier perform action list operation. It is invoked for each Zap
+     * at the time of creation via the Zapier UI
+     *
+     * This endpoint requires authentication.
+     *
+     * @return It will return list of dotCMS content
+     * [
+     *  "type-var1","type-var2",....
+     * ]
+     */
+    @GET
+    @Path("/perform-type-list")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public final Response getZapierTypeList(@Context final HttpServletRequest request, @Context final HttpServletResponse response)
+            throws URISyntaxException, DotStateException, DotDataException, DotSecurityException, JSONException {
+        // Only allow authenticated users
+        new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
+
+        Logger.info(this, "Perform Type List Zapier API invoked");
+        final JSONObject userResponse = new JSONObject();
+
+        this.contentAPI.types().entrySet().forEach(entry ->
+                Try.run(()->userResponse.put(entry.getKey(), entry.getValue())));
+
+        // Build the API response
+        return Response.status(200).entity(userResponse).build();
+    }
+
+    /**
+     * This endpoint provides the list of the actions to execute
+     * It is consumed by the Zapier perform action list operation. It is invoked for each Zap
+     * at the time of creation via the Zapier UI
+     *
+     * This endpoint requires authentication.
+     *
+     * @return It will return list of dotCMS content
+     * [
+     *  "save","edit",....
+     * ]
+     */
+    @GET
+    @Path("/perform-action-list")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public final Response getZapierActionList(@Context final HttpServletRequest request, @Context final HttpServletResponse response)
+            throws URISyntaxException, DotStateException, DotDataException, DotSecurityException, JSONException {
+        // Only allow authenticated users
+        new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
+
+        Logger.info(this, "Perform Action List Zapier API invoked");
+        final JSONObject userResponse = new JSONObject();
+
+        this.contentAPI.actionNames().entrySet().forEach(entry ->
+                Try.run(()->userResponse.put(entry.getKey(), entry.getValue())));
+
+        // Build the API response
         return Response.status(200).entity(userResponse).build();
     }
 
@@ -184,17 +266,15 @@ public class DotZapierResource  {
     @DELETE
     @Path("/unsubscribe")
     @NoCache
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON) // todo: this is done
     public final Response deleteUnSubscribe(@Context final HttpServletRequest request, @Context final HttpServletResponse response) 
 		throws URISyntaxException, DotStateException, DotDataException, DotSecurityException {
 		// Only allow authenticated users
-        final User user = new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
+        new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
 
         Logger.info(this, "Unsubscribe Zapier API invoked");
 
-        ResourceUtil resourceUtil = new ResourceUtil();
-
-        final String actionName = request.getParameter("triggerName"); 
+        final String actionName = request.getParameter("triggerName");
 
         // Update the Zapier Trigger Data
         this.zapierAppAPI.unregisterZap(actionName);
@@ -224,7 +304,7 @@ public class DotZapierResource  {
     @POST
     @Path("/subscribe")
     @NoCache
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON) // todo: this is done
     public final Response postSubscribe(@Context final HttpServletRequest request, @Context final HttpServletResponse response) 
 		throws URISyntaxException, DotStateException, DotDataException, DotSecurityException, IOException, JSONException {
 
@@ -286,21 +366,19 @@ public class DotZapierResource  {
         
         Logger.info(this, "Action Zapier API invoked");
 
-        ResourceUtil resourceUtil = new ResourceUtil();
-
-        final String hostName = this.getHostName(request);
-        final String dotCMSAPIKey = request.getHeader("authorization");
-
 		final String jsonString = new String(IOUtils.toByteArray(request.getInputStream()));
 		final JSONObject requestBody = new JSONObject(jsonString);
         
         final String contentType = requestBody.optString("contentType", "");
         Logger.info(this, "Name of the Content Type " + contentType);
-        
+
+        final String actionName = requestBody.optString("actionName", "save");
+        Logger.info(this, "Name of the Action Name " + actionName);
+
         final String contentText = requestBody.optString("text", "");
         Logger.info(this, "Text of the content " + contentText);
-        
-        // text is a required property on the request payload 
+
+        // text is a required property on the request payload
         if(contentText.length() == 0) {
             Logger.error(this, "Invalid argument received");
 
@@ -309,103 +387,20 @@ public class DotZapierResource  {
             return Response.status(400).entity(errorResponse).build();
         }
 
-        ContentParser contentParser = new ContentParser();
-
-        final JSONObject dotCMSContent = contentParser.parse(contentText);
+        final Map<String, Object> dotCMSContent = contentParser.parseJson(contentText);
 
         Logger.info(this, "dotCMS content " + dotCMSContent.toString());
 
-        // If the action name is not recognized, reject the API
-        if(!dotCMSContent.has("actionName")) {
-            Logger.error(this, "No action found");
+        if(contentType.length() == 0) {
+            Logger.error(this, "contentType is a required field");
 
             JSONObject errorResponse = new JSONObject();
-            errorResponse.put("message", "No action found");
+            errorResponse.put("message", "contentType is a required field");
             return Response.status(400).entity(errorResponse).build();
         }
 
-        final String actionName = dotCMSContent.optString("actionName");
-        if(actionName.equals("save")) { // Save Action
-            // For Save action, content type is a required property
-            if(contentType.length() == 0) {
-                Logger.error(this, "contentType is a required field");
-    
-                JSONObject errorResponse = new JSONObject();
-                errorResponse.put("message", "contentType is a required field");
-                return Response.status(400).entity(errorResponse).build();
-            }
-
-            final JSONObject contentTypeObject = resourceUtil.getContentTypeObject(hostName, dotCMSAPIKey, contentType);
-            
-            final String contentTypeVariableName = contentTypeObject.optString("variableName", "");
-            Logger.info(this, "Content Type Variable Name " + contentTypeVariableName);
-
-            // If content type cannot be resolved, then reject the request
-            if(contentTypeVariableName.length() == 0) {
-                Logger.error(this, "Content Type variable not found");
-
-                JSONObject errorResponse = new JSONObject();
-                errorResponse.put("message", "Content Type variable not found");
-                return Response.status(400).entity(errorResponse).build();
-            }
-
-            // Invoke dotCMS crud API
-            final String apiResponse = resourceUtil.saveOperation(hostName, dotCMSAPIKey, dotCMSContent, contentTypeObject);
-            return this.buildApiResponse(apiResponse, actionName);
-        }
-        else if( // All other actions
-            actionName.equals("edit") ||
-            actionName.equals("publish") ||
-            actionName.equals("unpublish") ||
-            actionName.equals("archive") ||
-            actionName.equals("unarchive") ||
-            actionName.equals("delete") ||
-            actionName.equals("destroy")
-        ) {
-            String contentIdentifier = dotCMSContent.optString("identifier", "");
-            // If the content identifier cannot be resolved, then reject the request
-            if(contentIdentifier.length() == 0) {
-                final String title = dotCMSContent.optString("title", "");
-
-                if(title.length() == 0) {
-                    Logger.error(this, "Either specifies the identifier or title");
-
-                    JSONObject errorResponse = new JSONObject();
-                    errorResponse.put("message", "Either specifies the identifier or title");
-                    return Response.status(400).entity(errorResponse).build();
-                }
-
-                contentIdentifier = resourceUtil.searchContentIdentifier(hostName, dotCMSAPIKey, title);
-                
-                if(contentIdentifier.length() == 0) {
-                    Logger.error(this, "No content matching the search criteria found");
-
-                    JSONObject errorResponse = new JSONObject();
-                    errorResponse.put("message", "No content matching the search criteria found");
-                    return Response.status(400).entity(errorResponse).build();
-                }
-            }
-
-            if(actionName.equals("edit")) {
-                final JSONObject contentTypeObject = resourceUtil.getContentTypeObject(hostName, dotCMSAPIKey, contentType);
-                
-                // Invoke dotCMS crud API
-                final String apiResponse = resourceUtil.editOperation(hostName, dotCMSAPIKey, contentIdentifier, dotCMSContent, contentTypeObject);
-                return this.buildApiResponse(apiResponse, actionName);
-            }
-            else {
-                // Invoke dotCMS crud API
-                final String apiResponse = resourceUtil.workflowOperation(hostName, dotCMSAPIKey, contentIdentifier, actionName);
-                return this.buildApiResponse(apiResponse, actionName);
-            }
-        }
-
-        Logger.error(this, "Unable to process the request");
-
-        // Build the API response
-        JSONObject errorResponse = new JSONObject();
-        errorResponse.put("message", "Unable to process the request");
-        return Response.status(400).entity(errorResponse).build();
+        this.contentAPI.fire(dotCMSContent, contentType, actionName, user);
+        return this.buildApiResponse("", actionName);
     }
 
     private final Response buildApiResponse(final String apiResponse, final String actionName) throws JSONException {

@@ -38,6 +38,8 @@ describe('zapier command actions', () => {
       text: `#${triggerName} #title=\"Lorem Ipsum\" #author=\"John Doe\" #publishDate=\"Sep 30 2022\" Lorem Ipsum is simply dummy text of the printing and typesetting industry`
     }; 
 
+    console.log("inputData", inputData);
+    console.log("testURL", testURL);
     // Mock the API response
     nock(testURL).post('/action', inputData)
     .reply(200, {

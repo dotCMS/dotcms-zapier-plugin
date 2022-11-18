@@ -66,7 +66,7 @@ describe('list content from dotcms', () => {
   */
   it('subscribe to a trigger from zapier', (done) => {
       
-    const triggerName = 'publish';
+    const triggerName = 'DotEvent';
 
     const inputData = {
       triggerName: triggerName
@@ -104,7 +104,7 @@ describe('list content from dotcms', () => {
   */
   it('unsubscribe to a trigger from zapier', (done) => {
       
-    const triggerName = 'publish';
+    const triggerName = 'DotEvent';
 
     // Mock the API response
     nock(testURL).delete('/unsubscribe' + '?triggerName=' + triggerName)

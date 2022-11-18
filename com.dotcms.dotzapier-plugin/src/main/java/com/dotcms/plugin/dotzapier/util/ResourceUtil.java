@@ -33,7 +33,7 @@ import com.dotmarketing.util.json.JSONArray;
 public class ResourceUtil {
 
     private static final String zapierComment = "Performed by Zapier";
-    private static final String webhookUrls = "webhookUrls.json";
+
 
     /**
      * Obtains the content type variable name
@@ -256,7 +256,8 @@ public class ResourceUtil {
      * @throws IOException
      * @throws JSONException
      */
-    public final String saveOperation(final String hostName, final String dotCMSAPIKey, final JSONObject dotCMSContent, final JSONObject contentTypeObject) throws IOException, JSONException {
+    public final String saveOperation(final String hostName, final String dotCMSAPIKey, final JSONObject dotCMSContent,
+                                      final JSONObject contentTypeObject) throws IOException, JSONException {
 
         String apiResponse = "Unable to process save request";
 
@@ -614,59 +615,5 @@ public class ResourceUtil {
     public final String prepareContentletUrl(final String hostName, final String contentletUrl) {
         final String url = hostName + "/dotAdmin/#/c" + contentletUrl.replace(".", "/");
         return url;
-    }
-
-    /**
-     * Writes data to a JSON file
-     * @param jsonObject Data to be writted to file
-     */
-    public final void writeJSON(JSONObject jsonObject) {
-        try {
-            BundleContext bundleContext = FrameworkUtil.getBundle(this.getClass()).getBundleContext();
-            File filePath = bundleContext.getDataFile(ResourceUtil.webhookUrls);
-
-            FileWriter file = new FileWriter(filePath);
-            file.write(jsonObject.toString());
-            file.close();
-            Logger.info(this, "Data written to JSON");
-         } catch (Exception e) {
-            e.printStackTrace();
-            Logger.error(this, "Write error");
-            Logger.error(this, e.getMessage());
-         }
-    }
-
-    /**
-     * Reads a JSON file
-     * @return JSONObject JSON data read from the file
-     */
-    public final JSONObject readJSON() {
-        JSONObject result = new JSONObject();
-        try {
-            BundleContext bundleContext = FrameworkUtil.getBundle(this.getClass()).getBundleContext();
-            File filePath = bundleContext.getDataFile(ResourceUtil.webhookUrls);
-
-            File file = new File(filePath.toPath().toAbsolutePath().toString());
-            
-            // Read the JSON data from file if it exists
-            if(file.exists()) {
-                FileInputStream fileInputStream = new FileInputStream(filePath);
-                byte[] data = new byte[(int) file.length()];
-                fileInputStream.read(data);
-                fileInputStream.close();
-    
-                String jsonString = new String(data);
-                result = new JSONObject(jsonString);
-            }
-            else {
-                Logger.info(this, "No Zapier action file exists");
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-            Logger.error(this, "Read error");
-            Logger.error(this, e.getMessage());
-        }
-        return result;
     }
 }

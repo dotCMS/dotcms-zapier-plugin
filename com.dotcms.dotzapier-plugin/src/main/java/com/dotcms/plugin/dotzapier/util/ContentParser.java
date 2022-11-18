@@ -7,20 +7,34 @@ package com.dotcms.plugin.dotzapier.util;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.dotcms.rest.api.v1.DotObjectMapperProvider;
 import com.dotmarketing.util.json.JSONObject;
 import com.dotmarketing.util.json.JSONException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 
-public class ContentParser {
+public class ContentParser { // todo: this one has to be changed to another format
 
+    /**
+     * Parses the content received from Zapier, it should be a json with the contentlet properties to add
+     * @param content Text received from Zapier
+     * @return Map Parsed data
+     * @throws JsonProcessingException
+     */
+    public final Map<String, Object> parseJson(final String content) throws JsonProcessingException {
+
+        return DotObjectMapperProvider.getInstance().getDefaultObjectMapper().readValue(content, Map.class);
+    }
     /**
      * Parses the content received from Zapier
      * @param content Text received from Zapier
      * @return JSONObject Parsed data
      * @throws JSONException
      */
-    public final JSONObject parse(final String content) throws JSONException {
+    public final JSONObject parseSlack(final String content) throws JSONException {
         JSONObject result = new JSONObject();
 
         final String[] cmdList = {

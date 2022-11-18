@@ -24,6 +24,10 @@ Node: `>=v14`
 
 NPM: `>=5.6.0`
 
+Set the URL env to test such as:
+
+export URL=https://local.dotcms.site
+
 Test: `npm run test`
 
 ---

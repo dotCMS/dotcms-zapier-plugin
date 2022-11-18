@@ -1,5 +1,6 @@
 package com.dotcms.plugin.dotzapier.zapier.app;
 
+import com.dotcms.plugin.dotzapier.util.Constants;
 import com.dotcms.security.apps.AppSecrets;
 import com.dotcms.security.apps.Secret;
 import com.dotcms.security.apps.Type;
@@ -28,7 +29,7 @@ import static com.dotcms.security.apps.Secret.newSecret;
  */
 public class ZapierAppAPI {
 
-    public final static String APP_KEY = "dotZapier";
+    public final static String APP_KEY = Constants.DOT_ZAPIER_APP_KEY;
     public final static String APP_NAME = "zapName";
     public final static String ALLOWED_APPS = "maxAllowedApps";
     public final static String MAX_ALLOWED_APPS = "allowedApps";

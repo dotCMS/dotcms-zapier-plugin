@@ -16,7 +16,7 @@ const appTester = zapier.createAppTester(App);
 describe('dotCMS Authentication', () => {
   zapier.tools.env.inject();
 
-  const testURL = process.env.URL;
+      const testURL = process.env.URL;
 
   // Resets the Nock interceptor after each test
   afterEach(() => {

@@ -2,6 +2,8 @@ package com.dotcms.plugin.dotzapier.zapier.workflow;
 
 import com.dotcms.plugin.dotzapier.util.ResourceUtil;
 
+import com.dotcms.plugin.dotzapier.zapier.app.ZapierApp;
+import com.dotcms.plugin.dotzapier.zapier.app.ZapierAppAPI;
 import com.dotmarketing.portlets.contentlet.model.Contentlet;
 import com.dotmarketing.portlets.workflows.actionlet.WorkFlowActionlet;
 import com.dotmarketing.portlets.workflows.model.WorkflowAction;
@@ -15,8 +17,11 @@ import com.dotmarketing.util.Logger;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class ZapierTriggerActionlet extends WorkFlowActionlet {
+
+    private static final ZapierAppAPI zapierAppAPI = new ZapierAppAPI();
     private static final long serialVersionUID = 1L;
     
     /**
@@ -46,7 +51,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
 
     /**
      * This method gets invoked when an action is performed on a dotCMS content
-     * @param contentlet dotCMS Contentlet object
+     * @param processor {@link WorkflowProcessor}
      * @param params Workflow action parameters
      * @throws WorkflowActionFailureException
     */
@@ -56,43 +61,48 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
 
         final WorkflowAction workflowAction = processor.getAction();
         final String actionName = workflowAction.getName().toLowerCase(); // get Action Name
-        
-        ResourceUtil resourceUtil = new ResourceUtil();
-        final JSONObject zapierTriggerURLS = resourceUtil.readJSON();
+        final Optional<ZapierApp> zapierAppOpt = this.zapierAppAPI.config();
 
-        Logger.info(this, "Workflow Action Name " + actionName);
-        Logger.info(this, "Available Zapier Actions " + zapierTriggerURLS.names().toString());
+        if (zapierAppOpt.isPresent()) {
 
-        // Obtain the instance url
-        final String hostName = zapierTriggerURLS.optString("url", "");
+            ResourceUtil resourceUtil = new ResourceUtil();
+            final Map<String, String> zapierTriggerURLS = zapierAppOpt.get().getZapsRegisterMap();
 
-        final Contentlet contentlet = processor.getContentlet();
+            Logger.info(this, "Workflow Action Name " + actionName);
+            Logger.info(this, "Available Zapier Actions " + zapierAppOpt.get().getZapsRegisterMap());
 
-        // Do not execute the workflow action if no content is found
-        // This would only occur when the destroy workflow is executed before Zapier workflow
-        if(contentlet == null) {
-            Logger.error(this, "No contentlet found.");
-            return;
-        }
+            // Obtain the instance url
+            final String hostName = zapierTriggerURLS.getOrDefault("url", "");
 
-        final JSONObject dotCMSObject = this.prepareContentletObject(hostName, contentlet);
+            final Contentlet contentlet = processor.getContentlet();
 
-        if(zapierTriggerURLS.has(actionName)) {
-            try {
-                Logger.info(this, "Zapier Action found " + actionName);
-
-                // Obtain the stored Subscribe URL
-                final String zapierActionUrl = zapierTriggerURLS.getString(actionName);
-
-                // Publish to Zapier
-                resourceUtil.publishToZapier(zapierActionUrl, dotCMSObject);
-            } catch (JSONException ex) {
-                Logger.error(this, "Unable to obtain Zapier action url");
-                Logger.error(this, ex.getMessage());
+            // Do not execute the workflow action if no content is found
+            // This would only occur when the destroy workflow is executed before Zapier workflow
+            if (contentlet == null) {
+                Logger.error(this, "No contentlet found.");
+                return;
             }
-        }
-        else {
-            Logger.error(this, "No Zapier action found");
+
+            final JSONObject dotCMSObject = this.prepareContentletObject(hostName, contentlet);
+
+            if (zapierTriggerURLS.containsKey(actionName)) {
+                try {
+                    Logger.info(this, "Zapier Action found " + actionName);
+
+                    // Obtain the stored Subscribe URL
+                    final String zapierActionUrl = zapierTriggerURLS.get(actionName);
+
+                    // Publish to Zapier
+                    resourceUtil.publishToZapier(zapierActionUrl, dotCMSObject);
+                } catch (Exception ex) {
+                    Logger.error(this, "Unable to obtain Zapier action url");
+                    Logger.error(this, ex.getMessage());
+                }
+            } else {
+                Logger.error(this, "No Zapier action found");
+            }
+        } else {
+            Logger.error(this, "No Zapier configuration found");
         }
     }
 
