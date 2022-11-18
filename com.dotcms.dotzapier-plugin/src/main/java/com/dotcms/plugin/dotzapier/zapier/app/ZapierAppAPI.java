@@ -111,12 +111,9 @@ public class ZapierAppAPI {
         }
 
         final Map<String, Secret> secrets = appSecrets.get().getSecrets();
-        final String appName   = Try.of(()->secrets
-                .get(APP_NAME).getString()).getOrElse(StringPool.BLANK);
-        final String allowedAppsValue = Try.of(()->secrets
-                .get(ALLOWED_APPS).getString()).getOrElse(StringPool.BLANK);
-        final String maxAllowedAppsValue   = Try.of(()->secrets
-                .get(MAX_ALLOWED_APPS).getString()).getOrElse(StringPool.BLANK);
+        final String appName   = Try.of(()->secrets.get(APP_NAME).getString()).getOrElse(StringPool.BLANK);
+        final String allowedAppsValue = Try.of(()->secrets.get(ALLOWED_APPS).getString()).getOrElse(StringPool.BLANK);
+        final String maxAllowedAppsValue   = Try.of(()->secrets.get(MAX_ALLOWED_APPS).getString()).getOrElse(StringPool.BLANK);
 
         Logger.debug(this.getClass().getName(), ()-> "appName: " + appName);
         Logger.debug(this.getClass().getName(), ()-> "allowedAppsValue: " + allowedAppsValue);
@@ -131,7 +128,7 @@ public class ZapierAppAPI {
                     !zapRegisterEntry.getKey().equals(MAX_ALLOWED_APPS)) {
 
                 Logger.debug(this.getClass().getName(), ()-> zapRegisterEntry.getKey() + ": " + zapRegisterEntry.getValue().toString());
-                zapsRegisterMap.put(zapRegisterEntry.getKey(), zapRegisterEntry.getValue().toString());
+                zapsRegisterMap.put(zapRegisterEntry.getKey(), zapRegisterEntry.getValue().getString());
             }
         }
 

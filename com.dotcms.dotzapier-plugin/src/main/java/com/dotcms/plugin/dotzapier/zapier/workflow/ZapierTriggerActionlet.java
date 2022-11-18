@@ -60,7 +60,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
         Logger.info(this, "Zapier Workflow action invoked");
 
         final WorkflowAction workflowAction = processor.getAction();
-        final String actionName = workflowAction.getName().toLowerCase(); // get Action Name
+        final String actionName = "DotEvent";
         final Optional<ZapierApp> zapierAppOpt = this.zapierAppAPI.config();
 
         if (zapierAppOpt.isPresent()) {
@@ -91,7 +91,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
 
                     // Obtain the stored Subscribe URL
                     final String zapierActionUrl = zapierTriggerURLS.get(actionName);
-
+                    Logger.info(this.getClass().getName(), "zapierActionUrl= " + zapierActionUrl);
                     // Publish to Zapier
                     resourceUtil.publishToZapier(zapierActionUrl, dotCMSObject);
                 } catch (Exception ex) {
@@ -169,6 +169,12 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
             dotCMSObject.put("working", isWorking);
             dotCMSObject.put("locked", isLocked);
             dotCMSObject.put("live", isLive);
+
+            for (final Map.Entry entry: contentlet.getMap().entrySet()) {
+
+                dotCMSObject.put(entry.getKey().toString(), entry.getValue());
+            }
+
         }
         catch(Exception ex) {
             Logger.error(this, "Unable to prepare the contentlet object to be sent to Zapier");
