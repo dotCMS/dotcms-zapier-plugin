@@ -1,6 +1,5 @@
 package com.dotcms.plugin.dotzapier.zapier.content;
 
-import com.dotcms.contenttype.model.field.Field;
 import com.dotcms.contenttype.model.type.ContentType;
 import com.dotcms.rest.MapToContentletPopulator;
 import com.dotcms.util.ConversionUtils;
@@ -23,6 +22,9 @@ import java.util.stream.Collectors;
 
 public class ContentAPI {
 
+    public static final String JSON_FORMAT = "json";
+    public static final String CSV_FORMAT  = "csv";
+
     private final Map<String, WorkflowAPI.SystemAction> actionNameSystemActionMap = getActionNameSystemActionMap();
     private final MapToContentletPopulator mapToContentletPopulator = MapToContentletPopulator.INSTANCE;
 
@@ -37,6 +39,21 @@ public class ContentAPI {
         map.put("unarchive", WorkflowAPI.SystemAction.UNARCHIVE);
         map.put("delete", WorkflowAPI.SystemAction.DELETE);
         return map;
+    }
+
+    private final Map<String, String> contentInputFormatMap = getContentInputFormatMap();
+
+    private Map<String, String> getContentInputFormatMap() {
+
+        final LinkedHashMap<String, String> map = new LinkedHashMap<>();
+        map.put(JSON_FORMAT, JSON_FORMAT);
+        map.put(CSV_FORMAT, CSV_FORMAT);
+        return map;
+    }
+
+    public Map<String, String> contentInputFormatMap() {
+
+        return this.contentInputFormatMap;
     }
 
     /**
@@ -93,14 +110,15 @@ public class ContentAPI {
         if (null == type) {
             throw new DoesNotExistException("The type: " + contentType + ", does not exits");
         }
-        final Contentlet contentlet = new Contentlet();
+        Contentlet contentlet = new Contentlet();
         contentlet.setContentType(type);
+        contentlet = this.populateContent(contentlet, dotCMSContent, user);
+
         final WorkflowAPI.SystemAction systemAction      = this.findSystemAction(actionName);
         final Optional<WorkflowAction> workflowActionOpt = // ask to see if there is any default action by content type or scheme
                 APILocator.getWorkflowAPI().findActionMappedBySystemActionContentlet
                         (contentlet, systemAction, user);
 
-        this.populateContent(contentlet, dotCMSContent);
         if (workflowActionOpt.isPresent()) {
 
             final ContentletDependencies contentletDependencies = new ContentletDependencies.Builder()
@@ -111,15 +129,57 @@ public class ContentAPI {
         return APILocator.getContentletAPI().checkin(contentlet, user, false);
     }
 
-    private void populateContent(final Contentlet contentlet,
-                                    final Map<String, Object> dotCMSContent) throws JSONException {
+    private Contentlet populateContent(final Contentlet contentlet,
+                                 final Map<String, Object> dotCMSContent,
+                                 final User user) throws JSONException, DotDataException, DotSecurityException {
 
-        this.mapToContentletPopulator.populate(contentlet, dotCMSContent);
+        return dotCMSContent.containsKey("id") || dotCMSContent.containsKey("identifier")?
+                this.populateContentExistingOne(contentlet, dotCMSContent, user):
+                this.mapToContentletPopulator.populate(contentlet, dotCMSContent);
+    }
 
+    private Contentlet populateContentExistingOne(Contentlet localContentlet,
+                                       final Map<String, Object> dotCMSContent,
+                                       final User user) throws JSONException, DotDataException, DotSecurityException {
+
+        String identifier = null;
+        long languageId   = -1;
         if (dotCMSContent.containsKey("id")) {
 
-            contentlet.setIdentifier(dotCMSContent.get("id").toString());
+            localContentlet.setIdentifier(dotCMSContent.get("id").toString());
+            identifier = localContentlet.getIdentifier();
         }
+
+        if (dotCMSContent.containsKey("identifier")) {
+
+            localContentlet.setIdentifier(dotCMSContent.get("identifier").toString());
+            identifier = localContentlet.getIdentifier();
+        }
+
+        if (dotCMSContent.containsKey("languageId")) {
+
+            localContentlet.setLanguageId(ConversionUtils.toLong(dotCMSContent.get("languageId").toString(), -1l));
+            languageId = localContentlet.getLanguageId();
+        }
+
+        if (null != identifier) {
+
+            final Optional<Contentlet> currentContentlet =  languageId <= 0?
+                    Optional.ofNullable(APILocator.getContentletAPI().findContentletByIdentifier(
+                            identifier, false, APILocator.getLanguageAPI().getDefaultLanguage().getId(), user, false)):
+                    APILocator.getContentletAPI().findContentletByIdentifierOrFallback
+                            (identifier, false, languageId, user, false);
+
+            if(currentContentlet.isPresent()) {
+                localContentlet = currentContentlet.get();
+                final String inode = localContentlet.getInode();
+                localContentlet = this.mapToContentletPopulator.populate(localContentlet, dotCMSContent);
+                localContentlet.setInode(inode);
+                return localContentlet;
+            }
+        }
+
+        return this.mapToContentletPopulator.populate(localContentlet, dotCMSContent);
     }
 
     private WorkflowAPI.SystemAction findSystemAction(final String actionName) {

@@ -1,9 +1,20 @@
 package com.dotcms.plugin.dotzapier.zapier.workflow;
 
+import com.dotcms.api.web.HttpServletRequestThreadLocal;
+import com.dotcms.api.web.HttpServletResponseThreadLocal;
+import com.dotcms.mock.request.FakeHttpRequest;
+import com.dotcms.mock.request.MockAttributeRequest;
+import com.dotcms.mock.request.MockSessionRequest;
+import com.dotcms.mock.response.BaseResponse;
 import com.dotcms.plugin.dotzapier.util.ResourceUtil;
 
 import com.dotcms.plugin.dotzapier.zapier.app.ZapierApp;
 import com.dotcms.plugin.dotzapier.zapier.app.ZapierAppAPI;
+import com.dotcms.rendering.engine.ScriptEngine;
+import com.dotcms.rendering.engine.ScriptEngineFactory;
+import com.dotcms.util.CollectionsUtils;
+import com.dotmarketing.beans.Host;
+import com.dotmarketing.business.APILocator;
 import com.dotmarketing.portlets.contentlet.model.Contentlet;
 import com.dotmarketing.portlets.workflows.actionlet.WorkFlowActionlet;
 import com.dotmarketing.portlets.workflows.model.WorkflowAction;
@@ -11,18 +22,29 @@ import com.dotmarketing.portlets.workflows.model.WorkflowActionClassParameter;
 import com.dotmarketing.portlets.workflows.model.WorkflowActionFailureException;
 import com.dotmarketing.portlets.workflows.model.WorkflowActionletParameter;
 import com.dotmarketing.portlets.workflows.model.WorkflowProcessor;
+import com.dotmarketing.util.UtilMethods;
 import com.dotmarketing.util.json.JSONException;
 import com.dotmarketing.util.json.JSONObject;
 import com.dotmarketing.util.Logger;
+import com.google.common.collect.ImmutableList;
+import com.liferay.portal.model.User;
+import com.liferay.util.StringPool;
+import io.vavr.control.Try;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class ZapierTriggerActionlet extends WorkFlowActionlet {
-
+    private final static String ENGINE = "Velocity";
     private static final ZapierAppAPI zapierAppAPI = new ZapierAppAPI();
     private static final long serialVersionUID = 1L;
+    private static List<WorkflowActionletParameter> parameterList = createParamList();
     
     /**
      * Input parameters to the Workflow action
@@ -30,8 +52,21 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
     */
     @Override
     public List<WorkflowActionletParameter> getParameters() {
-        return null;
+
+        return parameterList;
     }
+
+    private static List<WorkflowActionletParameter> createParamList () {
+
+        final ImmutableList.Builder<WorkflowActionletParameter> paramList = new ImmutableList.Builder<>();
+
+        paramList.add(new WorkflowActionletParameter
+                ("script", "Post Script Code", null, false));
+
+        return paramList.build();
+    }
+
+
 
     /**
      * Name of the Workflow action
@@ -49,6 +84,49 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
         return "Send notification to Zapier for integrating with third party apps";
     }
 
+    private HttpServletRequest  mockRequest (final User currentUser) {
+
+        final Host host = Try.of(()-> APILocator.getHostAPI()
+                .findDefaultHost(currentUser, false)).getOrElse(APILocator.systemHost());
+        return new MockAttributeRequest(
+                new MockSessionRequest(
+                        new FakeHttpRequest(host.getHostname(), StringPool.FORWARD_SLASH).request()
+                ).request()
+        ).request();
+    }
+
+    private HttpServletResponse mockResponse () {
+
+        return new BaseResponse().response();
+    }
+    public void executeScript(final WorkflowProcessor processor,
+                              final Map<String, WorkflowActionClassParameter> params) throws WorkflowActionFailureException {
+
+        try {
+            final User currentUser          = processor.getUser();
+            final HttpServletRequest request =
+                    null == HttpServletRequestThreadLocal.INSTANCE.getRequest()?
+                            this.mockRequest(currentUser): HttpServletRequestThreadLocal.INSTANCE.getRequest();
+            final HttpServletResponse response =
+                    null == HttpServletResponseThreadLocal.INSTANCE.getResponse()?
+                            this.mockResponse(): HttpServletResponseThreadLocal.INSTANCE.getResponse();
+            final WorkflowActionClassParameter scriptParameter = params.get("script");
+            final ScriptEngine engine = ScriptEngineFactory.getInstance().getEngine(ENGINE);
+            final String script       = scriptParameter.getValue();
+            if (UtilMethods.isSet(script)) {
+                final Reader reader = new StringReader(script);
+                engine.eval(request, response, reader,
+                        CollectionsUtils.map("workflow", processor,
+                                "user", processor.getUser(),
+                                "contentlet", processor.getContentlet(),
+                                "content", processor.getContentlet()));
+            }
+        } catch (Exception e) {
+
+            Logger.error(this, e.getMessage(), e);
+            throw new WorkflowActionFailureException(e.getMessage(), e);
+        }
+    }
     /**
      * This method gets invoked when an action is performed on a dotCMS content
      * @param processor {@link WorkflowProcessor}
@@ -59,16 +137,15 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
     public void executeAction(WorkflowProcessor processor, Map<String, WorkflowActionClassParameter> params) throws WorkflowActionFailureException {
         Logger.info(this, "Zapier Workflow action invoked");
 
-        final WorkflowAction workflowAction = processor.getAction();
-        final String actionName = "DotEvent";
         final Optional<ZapierApp> zapierAppOpt = this.zapierAppAPI.config();
 
         if (zapierAppOpt.isPresent()) {
 
+            this.executeScript(processor, params);
             ResourceUtil resourceUtil = new ResourceUtil();
             final Map<String, String> zapierTriggerURLS = zapierAppOpt.get().getZapsRegisterMap();
 
-            Logger.info(this, "Workflow Action Name " + actionName);
+            Logger.info(this, "Firing zapier actionlet");
             Logger.info(this, "Available Zapier Actions " + zapierAppOpt.get().getZapsRegisterMap());
 
             // Obtain the instance url
@@ -84,22 +161,19 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
             }
 
             final JSONObject dotCMSObject = this.prepareContentletObject(hostName, contentlet);
-
-            if (zapierTriggerURLS.containsKey(actionName)) {
-                try {
-                    Logger.info(this, "Zapier Action found " + actionName);
-
-                    // Obtain the stored Subscribe URL
-                    final String zapierActionUrl = zapierTriggerURLS.get(actionName);
-                    Logger.info(this.getClass().getName(), "zapierActionUrl= " + zapierActionUrl);
-                    // Publish to Zapier
-                    resourceUtil.publishToZapier(zapierActionUrl, dotCMSObject);
-                } catch (Exception ex) {
-                    Logger.error(this, "Unable to obtain Zapier action url");
-                    Logger.error(this, ex.getMessage());
+            final Set<String> urls = zapierTriggerURLS.keySet();
+            if (null != urls) {
+                for (final String zapierActionUrl : urls) {
+                    try {
+                        // Obtain the stored Subscribe URL
+                        Logger.info(this.getClass().getName(), "zapierActionUrl= " + zapierActionUrl);
+                        // Publish to Zapier
+                        resourceUtil.publishToZapier(zapierActionUrl, dotCMSObject);
+                    } catch (Exception ex) {
+                        Logger.error(this, "Unable to obtain Zapier action url");
+                        Logger.error(this, ex.getMessage());
+                    }
                 }
-            } else {
-                Logger.error(this, "No Zapier action found");
             }
         } else {
             Logger.error(this, "No Zapier configuration found");

@@ -11,75 +11,6 @@ const utils = require('../utils');
  * choices: { Vanityurl: 'Vanityurl', FileAsset: 'FileAsset', MyBlog: 'MyBlog' },
  * choices: { edit: 'edit', unpublish: 'unpublish', publish: 'publish' },
  */
-const  actionField = async (z, bundle) => {
-
-    const options = {
-        url: bundle.authData.url + dotZapierPluginUrl + 'perform-action-list',
-        method: 'GET'
-    };
-
-    const response = await z.request(options);
-
-    response.throwForStatus();
-
-    return [{
-        key: 'actionName',
-        label: 'Action',
-        type: 'string',
-        helpText: 'Action to execute',
-        required: true,
-        list: false,
-        choices: JSON.parse(response.json),
-        altersDynamicFields: false,
-    }];
-};
-
-const  typeField = async (z, bundle) => {
-
-    const options = {
-        url: bundle.authData.url + dotZapierPluginUrl + 'perform-type-list',
-        method: 'GET'
-    };
-
-    const response = await z.request(options);
-
-    response.throwForStatus();
-
-    return [{
-            key: 'contentType',
-            label: 'Content Type',
-            type: 'string',
-            helpText: 'Content type to use on the operation',
-            required: true,
-            list: false,
-            choices: JSON.parse(response.json),
-            altersDynamicFields: false,
-    }];
-};
-
-const  xmyinputFields = async (z, bundle) => {
-
-    const options = {
-        url: bundle.authData.url + dotZapierPluginUrl + 'perform-type-list',
-        method: 'GET'
-    };
-
-    const response = await z.request(options);
-
-    response.throwForStatus();
-
-    return [{
-        key: 'contentType',
-        label: 'Content Type',
-        type: 'string',
-        helpText: 'Content type to use on the operation',
-        required: true,
-        list: false,
-        choices: JSON.parse(response.json),
-        altersDynamicFields: false,
-    }];
-};
-
 const  myinputFields = async (z, bundle) => {
 
     const response1 = await z.request(bundle.authData.url + '/api/v1/dotzapier/perform-action-list');
@@ -90,6 +21,10 @@ const  myinputFields = async (z, bundle) => {
     const response2 = await z.request(bundle.authData.url + '/api/v1/dotzapier/perform-type-list');
     response2.throwForStatus();
     var json2 = response2.json; // { myBlog: 'My Blog', event: 'Event' };
+
+    const response3 = await z.request(bundle.authData.url + '/api/v1/dotzapier/perform-format-list');
+    response3.throwForStatus();
+    var json3 = response3.json; // { csv: 'csv', json: 'json' };
 
     return [
         {
@@ -111,7 +46,17 @@ const  myinputFields = async (z, bundle) => {
             list: false,
             choices: json2,
             altersDynamicFields: false,
-    }];
+        },
+        {
+            key: 'inputFormat',
+            label: 'Input Format',
+            type: 'string',
+            helpText: 'Message format to use on the operation',
+            required: true,
+            list: false,
+            choices: json3,
+            altersDynamicFields: false,
+        }];
 };
 
 /**
@@ -123,7 +68,8 @@ const  myinputFields = async (z, bundle) => {
 const createAction = async (z, bundle) => {  
     const body = {
         contentType: bundle.inputData.contentType,
-        actionName: bundle.inputData.actionName,
+        actionName:  bundle.inputData.actionName,
+        inputFormat: bundle.inputData.inputFormat,
         text: bundle.inputData.text
     }
   

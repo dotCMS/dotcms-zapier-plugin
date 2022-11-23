@@ -5,50 +5,47 @@
 
 package com.dotcms.plugin.dotzapier.zapier.rest;
 
-import com.dotcms.contenttype.model.type.ContentType;
+import com.dotcms.plugin.dotzapier.util.ContentParser;
+import com.dotcms.plugin.dotzapier.util.ResourceUtil;
 import com.dotcms.plugin.dotzapier.zapier.app.ZapierApp;
 import com.dotcms.plugin.dotzapier.zapier.app.ZapierAppAPI;
 import com.dotcms.plugin.dotzapier.zapier.content.ContentAPI;
-import com.dotmarketing.business.APILocator;
-import com.dotmarketing.portlets.contentlet.model.Contentlet;
-import io.vavr.control.Try;
-import org.apache.commons.io.IOUtils;
-
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.Path;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.Produces;
-
-import com.dotcms.plugin.dotzapier.util.ContentParser;
-import com.dotcms.plugin.dotzapier.util.ResourceUtil;
-
 import com.dotcms.rest.ResponseEntityView;
 import com.dotcms.rest.WebResource;
 import com.dotcms.rest.annotation.NoCache;
 import com.dotmarketing.business.DotStateException;
 import com.dotmarketing.exception.DotDataException;
 import com.dotmarketing.exception.DotSecurityException;
+import com.dotmarketing.portlets.contentlet.model.Contentlet;
 import com.dotmarketing.util.Logger;
+import com.dotmarketing.util.json.JSONArray;
 import com.dotmarketing.util.json.JSONException;
 import com.dotmarketing.util.json.JSONObject;
-import com.dotmarketing.util.json.JSONArray;
 import com.liferay.portal.model.User;
+import io.vavr.control.Try;
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
+import org.apache.commons.io.IOUtils;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * This endpoint is in charge of un/subscribed zaps, also provide some helper methods for it in addition to encapsulate the perform create action
+ * for the dotEvent
+ */
 @Path("/v1/dotzapier")
 public class DotZapierResource  {
 
@@ -196,9 +193,11 @@ public class DotZapierResource  {
      * This endpoint requires authentication.
      *
      * @return It will return list of dotCMS content
-     * [
-     *  "type-var1","type-var2",....
-     * ]
+     *
+     * {
+     *     "type-var1":"type-var1",
+     *     "type-var2":"type-var2"
+     * }
      */
     @GET
     @Path("/perform-type-list")
@@ -220,6 +219,38 @@ public class DotZapierResource  {
     }
 
     /**
+     * This endpoint provides the list of the formats allowed to send
+     * It is consumed by the Zapier perform action list operation. It is invoked for each Zap
+     * at the time of creation via the Zapier UI
+     *
+     * This endpoint requires authentication.
+     *
+     * @return It will return list of dotCMS content
+     * {
+     *     "format1":"format1",
+     *     "format2":"format2"
+     * }
+     */
+    @GET
+    @Path("/perform-format-list")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public final Response getZapierFormatList(@Context final HttpServletRequest request, @Context final HttpServletResponse response)
+            throws DotStateException {
+        // Only allow authenticated users
+        new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
+
+        Logger.info(this, "Perform Format List Zapier API invoked");
+        final JSONObject userResponse = new JSONObject();
+
+        this.contentAPI.contentInputFormatMap().entrySet().forEach(entry ->
+                Try.run(()->userResponse.put(entry.getKey(), entry.getValue())));
+
+        // Build the API response
+        return Response.status(200).entity(userResponse).build();
+    }
+
+    /**
      * This endpoint provides the list of the actions to execute
      * It is consumed by the Zapier perform action list operation. It is invoked for each Zap
      * at the time of creation via the Zapier UI
@@ -227,9 +258,12 @@ public class DotZapierResource  {
      * This endpoint requires authentication.
      *
      * @return It will return list of dotCMS content
-     * [
-     *  "save","edit",....
-     * ]
+     *
+     * {
+     *     "save":"save",
+     *     "edit":"edit",
+     *     ...
+     * }
      */
     @GET
     @Path("/perform-action-list")
@@ -274,10 +308,10 @@ public class DotZapierResource  {
 
         Logger.info(this, "Unsubscribe Zapier API invoked");
 
-        final String actionName = request.getParameter("triggerName");
+        final String triggerUrl = request.getParameter("triggerUrl");
 
         // Update the Zapier Trigger Data
-        this.zapierAppAPI.unregisterZap(actionName);
+        this.zapierAppAPI.unregisterZap(triggerUrl);
 
         // Build the API response
 		final ResponseEntityView responseEntityView = new ResponseEntityView(ImmutableMap.of("message", "Zapier hook removed"));
@@ -358,8 +392,8 @@ public class DotZapierResource  {
     @Path("/action")
     @NoCache
     @Produces(MediaType.APPLICATION_JSON)
-    public final Response postCreateAction(@Context final HttpServletRequest request, @Context final HttpServletResponse response) 
-		throws URISyntaxException, DotStateException, DotDataException, DotSecurityException, IOException, JSONException {
+    public final Response postCreateAction(@Context final HttpServletRequest request, @Context final HttpServletResponse response)
+            throws Exception {
 		
         // Only allow authenticated users
         final User user = new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
@@ -375,6 +409,9 @@ public class DotZapierResource  {
         final String actionName = requestBody.optString("actionName", "save");
         Logger.info(this, "Name of the Action Name " + actionName);
 
+        final String inputFormat = requestBody.optString("inputFormat", "json");
+        Logger.info(this, "Name of the Input Format " + inputFormat);
+
         final String contentText = requestBody.optString("text", "");
         Logger.info(this, "Text of the content " + contentText);
 
@@ -387,7 +424,7 @@ public class DotZapierResource  {
             return Response.status(400).entity(errorResponse).build();
         }
 
-        final Map<String, Object> dotCMSContent = contentParser.parseJson(contentText);
+        final Map<String, Object> dotCMSContent = contentParser.parseContent(inputFormat, contentText);
 
         Logger.info(this, "dotCMS content " + dotCMSContent.toString());
 

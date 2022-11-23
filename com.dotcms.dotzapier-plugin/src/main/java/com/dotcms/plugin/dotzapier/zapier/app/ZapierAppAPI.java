@@ -37,9 +37,9 @@ public class ZapierAppAPI {
     /**
      * Unregister a zap into the app config for the system host
      */
-    public void unregisterZap(final String triggerName) {
+    public void unregisterZap(final String triggerUrl) {
 
-        unregisterZap(APILocator.systemHost(), triggerName);
+        unregisterZap(APILocator.systemHost(), triggerUrl);
     }
 
     /**
@@ -72,9 +72,9 @@ public class ZapierAppAPI {
 
         try {
 
-            final Secret secret = newSecret(url.toCharArray(), Type.STRING, false);
+            final Secret secret = newSecret(triggerName.toCharArray(), Type.STRING, false);
             Logger.debug(this.getClass().getName(), ()-> "Saving the secret: " + triggerName + " - " + url);
-            APILocator.getAppsAPI().saveSecret(APP_KEY, Tuple.of(triggerName, secret), site, APILocator.systemUser());
+            APILocator.getAppsAPI().saveSecret(APP_KEY, Tuple.of(url, secret), site, APILocator.systemUser());
         } catch (Exception e) {
 
             Logger.error(this.getClass().getName(), e.getMessage(), e);

@@ -63,8 +63,11 @@ const subscribeOperation = async (z, bundle, triggerName) => {
  *                    by this operation. An Empty dictionary throws an error
  */
 const unsubscribeOperation = async (z, bundle) => {
+
+    const triggerUrl = bundle.targetUrl;
+
     const options = {
-      url: bundle.authData.url + dotZapierPluginUrl +'unsubscribe' + '?triggerName=' + bundle.subscribeData.id,
+      url: bundle.authData.url + dotZapierPluginUrl +'unsubscribe' + '?triggerUrl=' + triggerUrl,
       method: 'DELETE'
     };
   
