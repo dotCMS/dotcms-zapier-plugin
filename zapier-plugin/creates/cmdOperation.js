@@ -103,6 +103,7 @@ module.exports = {
         perform: createAction,
 
         inputFields: [
+            myinputFields,
             {
                 key: 'text',
                 label: 'Text',
@@ -112,7 +113,6 @@ module.exports = {
                 list: false,
                 altersDynamicFields: false,
             },
-            myinputFields,
         ],
 
         sample: utils.sampleObject,
