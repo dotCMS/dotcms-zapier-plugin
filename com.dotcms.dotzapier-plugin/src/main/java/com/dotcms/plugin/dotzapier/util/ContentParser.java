@@ -5,6 +5,7 @@
 package com.dotcms.plugin.dotzapier.util;
 
 import com.dotcms.plugin.dotzapier.zapier.content.ContentAPI;
+import com.dotmarketing.util.Logger;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.util.HashMap;

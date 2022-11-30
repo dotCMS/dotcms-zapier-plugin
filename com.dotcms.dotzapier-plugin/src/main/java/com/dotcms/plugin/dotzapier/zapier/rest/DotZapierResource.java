@@ -389,7 +389,7 @@ public class DotZapierResource  {
      * 
     */
     @POST
-    @Path("/action")
+    @Path("/action") // todo: if the site is not sent, so use the default or system one
     @NoCache
     @Produces(MediaType.APPLICATION_JSON)
     public final Response postCreateAction(@Context final HttpServletRequest request, @Context final HttpServletResponse response)

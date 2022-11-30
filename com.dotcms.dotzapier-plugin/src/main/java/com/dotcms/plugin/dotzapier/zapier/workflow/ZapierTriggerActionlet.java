@@ -7,7 +7,6 @@ import com.dotcms.mock.request.MockAttributeRequest;
 import com.dotcms.mock.request.MockSessionRequest;
 import com.dotcms.mock.response.BaseResponse;
 import com.dotcms.plugin.dotzapier.util.ResourceUtil;
-
 import com.dotcms.plugin.dotzapier.zapier.app.ZapierApp;
 import com.dotcms.plugin.dotzapier.zapier.app.ZapierAppAPI;
 import com.dotcms.rendering.engine.ScriptEngine;
@@ -17,15 +16,13 @@ import com.dotmarketing.beans.Host;
 import com.dotmarketing.business.APILocator;
 import com.dotmarketing.portlets.contentlet.model.Contentlet;
 import com.dotmarketing.portlets.workflows.actionlet.WorkFlowActionlet;
-import com.dotmarketing.portlets.workflows.model.WorkflowAction;
 import com.dotmarketing.portlets.workflows.model.WorkflowActionClassParameter;
 import com.dotmarketing.portlets.workflows.model.WorkflowActionFailureException;
 import com.dotmarketing.portlets.workflows.model.WorkflowActionletParameter;
 import com.dotmarketing.portlets.workflows.model.WorkflowProcessor;
-import com.dotmarketing.util.UtilMethods;
-import com.dotmarketing.util.json.JSONException;
-import com.dotmarketing.util.json.JSONObject;
 import com.dotmarketing.util.Logger;
+import com.dotmarketing.util.UtilMethods;
+import com.dotmarketing.util.json.JSONObject;
 import com.google.common.collect.ImmutableList;
 import com.liferay.portal.model.User;
 import com.liferay.util.StringPool;
@@ -40,6 +37,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * This actionlet basically sends the json contentlet event to whatevet hooks (or hooks) subscribed by zapier.
+ * Also the user can write custom script (velocity) code as a precondition to add extra properties as part of the contentlet to zapier
+ */
 public class ZapierTriggerActionlet extends WorkFlowActionlet {
     private final static String ENGINE = "Velocity";
     private static final ZapierAppAPI zapierAppAPI = new ZapierAppAPI();
@@ -61,6 +62,9 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
         final ImmutableList.Builder<WorkflowActionletParameter> paramList = new ImmutableList.Builder<>();
 
         paramList.add(new WorkflowActionletParameter
+                ("webHookUrl", "Zap Webhook URL", null, false));
+
+        paramList.add(new WorkflowActionletParameter
                 ("script", "Post Script Code", null, false));
 
         return paramList.build();
@@ -73,7 +77,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
     */
     @Override
     public String getName() {
-        return "dotZapier Zap";
+        return "Send to Zapier";
     }
 
     /**
@@ -103,6 +107,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
                               final Map<String, WorkflowActionClassParameter> params) throws WorkflowActionFailureException {
 
         try {
+
             final User currentUser          = processor.getUser();
             final HttpServletRequest request =
                     null == HttpServletRequestThreadLocal.INSTANCE.getRequest()?
@@ -135,6 +140,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
     */
     @Override
     public void executeAction(WorkflowProcessor processor, Map<String, WorkflowActionClassParameter> params) throws WorkflowActionFailureException {
+
         Logger.info(this, "Zapier Workflow action invoked");
 
         final Optional<ZapierApp> zapierAppOpt = this.zapierAppAPI.config();
@@ -142,7 +148,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
         if (zapierAppOpt.isPresent()) {
 
             this.executeScript(processor, params);
-            ResourceUtil resourceUtil = new ResourceUtil();
+            final ResourceUtil resourceUtil = new ResourceUtil();
             final Map<String, String> zapierTriggerURLS = zapierAppOpt.get().getZapsRegisterMap();
 
             Logger.info(this, "Firing zapier actionlet");
@@ -161,22 +167,36 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
             }
 
             final JSONObject dotCMSObject = this.prepareContentletObject(hostName, contentlet);
-            final Set<String> urls = zapierTriggerURLS.keySet();
-            if (null != urls) {
-                for (final String zapierActionUrl : urls) {
-                    try {
-                        // Obtain the stored Subscribe URL
-                        Logger.info(this.getClass().getName(), "zapierActionUrl= " + zapierActionUrl);
-                        // Publish to Zapier
-                        resourceUtil.publishToZapier(zapierActionUrl, dotCMSObject);
-                    } catch (Exception ex) {
-                        Logger.error(this, "Unable to obtain Zapier action url");
-                        Logger.error(this, ex.getMessage());
+            final WorkflowActionClassParameter webHookUrlParameter = params.get("webHookUrl");
+            final String webHookUrl = webHookUrlParameter.getValue();
+            if (UtilMethods.isSet(webHookUrl)) {
+
+                this.pushToZapier(resourceUtil, webHookUrl, dotCMSObject);
+            } else {
+                final Set<String> appWebHookUrls = zapierTriggerURLS.keySet();
+                if (null != appWebHookUrls) {
+                    for (final String zapierActionUrl : appWebHookUrls) {
+
+                        this.pushToZapier(resourceUtil, zapierActionUrl, dotCMSObject);
                     }
                 }
             }
         } else {
+
             Logger.error(this, "No Zapier configuration found");
+        }
+    }
+
+    private void pushToZapier (final ResourceUtil resourceUtil, final String zapierActionUrl, final JSONObject dotCMSObject) {
+
+        try {
+            // Obtain the stored Subscribe URL
+            Logger.info(this.getClass().getName(), "zapierActionUrl= " + zapierActionUrl);
+            // Publish to Zapier
+            resourceUtil.publishToZapier(zapierActionUrl, dotCMSObject);
+        } catch (Exception ex) {
+            Logger.error(this, "Unable to obtain Zapier action url");
+            Logger.error(this, ex.getMessage());
         }
     }
 
