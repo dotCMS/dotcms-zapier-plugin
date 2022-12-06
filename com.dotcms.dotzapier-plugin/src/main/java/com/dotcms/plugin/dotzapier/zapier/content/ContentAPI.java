@@ -12,6 +12,7 @@ import com.dotmarketing.portlets.contentlet.model.ContentletDependencies;
 import com.dotmarketing.portlets.workflows.business.WorkflowAPI;
 import com.dotmarketing.portlets.workflows.model.WorkflowAction;
 import com.dotmarketing.util.json.JSONException;
+import com.liferay.portal.model.Company;
 import com.liferay.portal.model.User;
 
 import java.util.LinkedHashMap;
@@ -185,5 +186,22 @@ public class ContentAPI {
     private WorkflowAPI.SystemAction findSystemAction(final String actionName) {
 
         return this.actionNameSystemActionMap.getOrDefault(actionName, WorkflowAPI.SystemAction.NEW);
+    }
+
+    public String generateEditContentletURL (final Contentlet contentlet) {
+
+        String url = "dotAdmin/#/c/content/" + contentlet.getInode();
+        final Company company = APILocator.getCompanyAPI().getDefaultCompany();
+        if (null != company) {
+
+            String portalUrl = company.getPortalURL();
+            if (!portalUrl.trim().endsWith("/")) {
+                portalUrl = portalUrl.trim() + "/";
+            }
+
+            url = portalUrl + url;
+        }
+
+        return url;
     }
 }
