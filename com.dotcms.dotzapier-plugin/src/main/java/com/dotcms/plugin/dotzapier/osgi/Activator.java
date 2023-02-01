@@ -1,8 +1,3 @@
-/**
- * Entry point to the OSGi application
- * Registers the rest endpoint resources
-*/
-
 package com.dotcms.plugin.dotzapier.osgi;
 
 import com.dotcms.plugin.dotzapier.util.AppUtil;
@@ -15,9 +10,11 @@ import com.dotmarketing.osgi.GenericBundleActivator;
 import com.dotmarketing.util.Logger;
 import org.osgi.framework.BundleContext;
 
+/**
+ * Entry point to the OSGi application
+ * Registers the rest endpoint resources
+ */
 public class Activator extends GenericBundleActivator {
-
-	private final ZapierAppAPI zapierAppAPI = new ZapierAppAPI();
 
     /**
      * Starts the OSGi application

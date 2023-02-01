@@ -1,8 +1,3 @@
-/**
- * Contains the utility methods to copy and delete the App yaml file to the App directory.
- * Also refreshs the Apps.
-*/
-
 package com.dotcms.plugin.dotzapier.util;
 
 import java.io.File;
@@ -14,6 +9,10 @@ import com.dotmarketing.business.CacheLocator;
 import com.dotmarketing.util.ConfigUtils;
 import com.dotmarketing.util.Logger;
 
+/**
+ * Contains the utility methods to copy and delete the App yaml file to the App directory.
+ * Also refreshs the Apps.
+ */
 public class AppUtil {
     /**
      * Name of the YAML file which identifies the App

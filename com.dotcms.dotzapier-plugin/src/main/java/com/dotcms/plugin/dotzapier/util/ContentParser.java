@@ -5,17 +5,21 @@
 package com.dotcms.plugin.dotzapier.util;
 
 import com.dotcms.plugin.dotzapier.zapier.content.ContentAPI;
-import com.dotmarketing.util.Logger;
 import com.fasterxml.jackson.core.JsonProcessingException;
 
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Contains the providers for content parsers
+ * Json or csv by now
+ */
 public class ContentParser {
 
     private final Map<String, InputParser> inputParserMap = this.getInputParserMap();
 
     private Map<String, InputParser> getInputParserMap() {
+
         final Map<String, InputParser> map = new HashMap<>();
 
         map.put(ContentAPI.JSON_FORMAT, new JsonInputParser());

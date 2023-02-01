@@ -7,6 +7,11 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Very basic comma separated csv parser
+ * expect a line such as
+ * fieldVariableName1=Value1,fieldVariableName2=Value2,fieldVariableName2=Value2,...
+ */
 public class CSVInputParser implements InputParser {
 
     @Override

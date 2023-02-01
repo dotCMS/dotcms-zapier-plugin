@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Map;
 
+/**
+ * Json parser based on jackson mapper
+ */
 public class JsonInputParser implements InputParser {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
