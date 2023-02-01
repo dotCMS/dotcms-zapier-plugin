@@ -116,9 +116,9 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
                     null == HttpServletResponseThreadLocal.INSTANCE.getResponse()?
                             this.mockResponse(): HttpServletResponseThreadLocal.INSTANCE.getResponse();
             final WorkflowActionClassParameter scriptParameter = params.get("script");
-            final ScriptEngine engine = ScriptEngineFactory.getInstance().getEngine(ENGINE);
             final String script       = scriptParameter.getValue();
             if (UtilMethods.isSet(script)) {
+                final ScriptEngine engine = ScriptEngineFactory.getInstance().getEngine(ENGINE);
                 final Reader reader = new StringReader(script);
                 engine.eval(request, response, reader,
                         CollectionsUtils.map("workflow", processor,
@@ -154,9 +154,6 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
             Logger.info(this, "Firing zapier actionlet");
             Logger.info(this, "Available Zapier Actions " + zapierAppOpt.get().getZapsRegisterMap());
 
-            // Obtain the instance url
-            final String hostName = zapierTriggerURLS.getOrDefault("url", "");
-
             final Contentlet contentlet = processor.getContentlet();
 
             // Do not execute the workflow action if no content is found
@@ -166,7 +163,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
                 return;
             }
 
-            final JSONObject dotCMSObject = this.prepareContentletObject(hostName, contentlet);
+            final JSONObject dotCMSObject = this.prepareContentletObject(contentlet);
             final WorkflowActionClassParameter webHookUrlParameter = params.get("webHookUrl");
             final String webHookUrl = webHookUrlParameter.getValue();
             if (UtilMethods.isSet(webHookUrl)) {
@@ -201,43 +198,15 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
     }
 
     /**
-     * Obtains the url of the content processed in dotCMS
-     * @param hostName The dotCMS instance url
-     * @param contentlet dotCMS Contentlet object
-     * @return String URL of the content processed in dotCMS
-    */
-    private final String generateUrl(final String hostName, final Contentlet contentlet) {
-        String url = "";
-
-        final String contentIdentifier = contentlet.getIdentifier();
-
-        ResourceUtil resourceUtil = new ResourceUtil();
-        final JSONObject contentletData = resourceUtil.getContentletData(hostName, contentIdentifier);
-        final String contentletUrl = contentletData.optString("url", "");
-
-        if(contentletUrl.length() == 0) {
-            url = "No Contentlet URL generated from retrieval API";
-        }
-        else {
-            url = resourceUtil.prepareContentletUrl(hostName, contentletUrl);
-        }
-        
-        return url;
-    }
-
-    /**
      * Generates the contentlet object which needs to be sent out to Zapier.
      * It would contain all the output fields in a Zap trigger
-     * @param hostName The dotCMS instance url
      * @param contentlet dotCMS Contentlet object
      * @return JSONObject Contains only the fields needed to be processed by Zapier
     */
-    private final JSONObject prepareContentletObject(final String hostName, final Contentlet contentlet) {
+    private final JSONObject prepareContentletObject(final Contentlet contentlet) {
         JSONObject dotCMSObject = new JSONObject();
 
         try {
-            final String url = this.generateUrl(hostName, contentlet);
-
             final String identifier = contentlet.getIdentifier();
             final String host = contentlet.getHost();
             final String contentType = contentlet.getContentType().name();
@@ -253,7 +222,6 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
             dotCMSObject.put("id", identifier);
             dotCMSObject.put("identifier", identifier);
             dotCMSObject.put("hostName", host);
-            dotCMSObject.put("url", url);
             dotCMSObject.put("contentType", contentType);
             dotCMSObject.put("title", title);
             dotCMSObject.put("modUserName", modUserName);

@@ -358,11 +358,6 @@ public class DotZapierResource  {
         
         // Save the Zapier Trigger Data
         final Optional<ZapierApp> zapierApp = this.zapierAppAPI.config();
-        if(!zapierApp.isPresent() || !zapierApp.get().getZapsRegisterMap().containsKey("url")) {
-
-            this.zapierAppAPI.registerZap("url", hostName);
-        }
-
         this.zapierAppAPI.registerZap(actionName, triggerURL);
 
         // Build the API response
