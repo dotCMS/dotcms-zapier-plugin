@@ -10,17 +10,10 @@ params:
     type: "STRING"
     hint: "One can store the name of the Zap"
     required: false
-  maxAllowedApps:
-    label: "Max Allowed Apps"
-    value: "-1"
-    hidden: false
-    type: "STRING"
-    hint: "-1 means not limit"
-    required: false
-  allowedApps:
-    label: "Allowed Apps"
+  allowedContentTypes:
+    label: "Allowed Content types"
     value: ""
     hidden: false
     type: "STRING"
-    hint: "Comma separated list of allowed map, empty means all apps are allowed"
+    hint: "Comma separated list of allowed content types, empty means all types are allowed"
     required: false

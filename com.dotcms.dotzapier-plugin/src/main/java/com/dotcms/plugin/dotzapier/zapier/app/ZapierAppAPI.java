@@ -4,7 +4,6 @@ import com.dotcms.plugin.dotzapier.util.Constants;
 import com.dotcms.security.apps.AppSecrets;
 import com.dotcms.security.apps.Secret;
 import com.dotcms.security.apps.Type;
-import com.dotcms.util.ConversionUtils;
 import com.dotmarketing.beans.Host;
 import com.dotmarketing.business.APILocator;
 import com.dotmarketing.util.Logger;
@@ -20,6 +19,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.dotcms.security.apps.Secret.newSecret;
 
@@ -31,8 +32,7 @@ public class ZapierAppAPI {
 
     public final static String APP_KEY = Constants.DOT_ZAPIER_APP_KEY;
     public final static String APP_NAME = "zapName";
-    public final static String ALLOWED_APPS = "maxAllowedApps";
-    public final static String MAX_ALLOWED_APPS = "allowedApps";
+    public final static String ALLOWED_TYPES = "allowedContentTypes";
 
     /**
      * Unregister a zap into the app config for the system host
@@ -112,20 +112,17 @@ public class ZapierAppAPI {
 
         final Map<String, Secret> secrets = appSecrets.get().getSecrets();
         final String appName   = Try.of(()->secrets.get(APP_NAME).getString()).getOrElse(StringPool.BLANK);
-        final String allowedAppsValue = Try.of(()->secrets.get(ALLOWED_APPS).getString()).getOrElse(StringPool.BLANK);
-        final String maxAllowedAppsValue   = Try.of(()->secrets.get(MAX_ALLOWED_APPS).getString()).getOrElse(StringPool.BLANK);
+        final String allowedTypesValue = Try.of(()->secrets.get(ALLOWED_TYPES).getString()).getOrElse(StringPool.BLANK);
 
         Logger.debug(this.getClass().getName(), ()-> "appName: " + appName);
-        Logger.debug(this.getClass().getName(), ()-> "allowedAppsValue: " + allowedAppsValue);
-        Logger.debug(this.getClass().getName(), ()-> "maxAllowedAppsValue: " + maxAllowedAppsValue);
-        final int maxAllowedApps = ConversionUtils.toInt(maxAllowedAppsValue, -1);
-        final Set<String> allowedApps = UtilMethods.isSet(allowedAppsValue)?
-                new HashSet<>(Arrays.asList(allowedAppsValue.split(StringPool.COMMA))): Collections.emptySet();
+        Logger.debug(this.getClass().getName(), ()-> "allowedTypesValue: " + allowedTypesValue);
+        final Set<String> allowedApps = UtilMethods.isSet(allowedTypesValue)?
+                Stream.of(allowedTypesValue.split(StringPool.COMMA)).map(String::trim).collect(Collectors.toSet()) :
+                Collections.emptySet();
         final Map<String, String> zapsRegisterMap = new HashMap<>();
         for (final Map.Entry<String, Secret> zapRegisterEntry : secrets.entrySet()) {
 
-            if (!zapRegisterEntry.getKey().equals(APP_NAME) || !zapRegisterEntry.getKey().equals(ALLOWED_APPS) ||
-                    !zapRegisterEntry.getKey().equals(MAX_ALLOWED_APPS)) {
+            if (!zapRegisterEntry.getKey().equals(APP_NAME) || !zapRegisterEntry.getKey().equals(ALLOWED_TYPES)) {
 
                 Logger.debug(this.getClass().getName(), ()-> zapRegisterEntry.getKey() + ": " + zapRegisterEntry.getValue().toString());
                 zapsRegisterMap.put(zapRegisterEntry.getKey(), zapRegisterEntry.getValue().getString());
@@ -133,7 +130,7 @@ public class ZapierAppAPI {
         }
 
         final ZapierApp config = new ZapierApp(
-                appName, allowedApps, maxAllowedApps, zapsRegisterMap);
+                appName, allowedApps, zapsRegisterMap);
 
         return Optional.ofNullable(config);
     }

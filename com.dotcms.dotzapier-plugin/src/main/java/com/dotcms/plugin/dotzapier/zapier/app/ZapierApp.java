@@ -10,23 +10,17 @@ import java.util.Set;
 public class ZapierApp {
 
     private final String name;
-    private final Set<String> allowedApps;
-    private final int maxAllowedApps;
+    private final Set<String> allowedContentTypes;
     private final Map<String, String> zapsRegisterMap;
 
-    public ZapierApp(String name, Set<String> allowedApps, int maxAllowedApps, Map<String, String> zapsRegisterMap) {
+    public ZapierApp(final String name, final Set<String> allowedContentTypes,  final Map<String, String> zapsRegisterMap) {
         this.name = name;
-        this.allowedApps = allowedApps;
-        this.maxAllowedApps = maxAllowedApps;
+        this.allowedContentTypes = allowedContentTypes;
         this.zapsRegisterMap = zapsRegisterMap;
     }
 
-    public Set<String> getAllowedApps() {
-        return allowedApps;
-    }
-
-    public int getMaxAllowedApps() {
-        return maxAllowedApps;
+    public Set<String> getAllowedContentTypes() {
+        return allowedContentTypes;
     }
 
     public String getName() {

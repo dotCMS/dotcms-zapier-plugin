@@ -347,7 +347,6 @@ public class DotZapierResource  {
         
         Logger.info(this, "Subscribe Zapier API invoked");
 
-        final String hostName = this.getHostName(request);
 		final String jsonString = new String(IOUtils.toByteArray(request.getInputStream()));
 		final JSONObject requestBody = new JSONObject(jsonString);
         final String actionName = requestBody.optString("triggerName", "");
@@ -357,7 +356,6 @@ public class DotZapierResource  {
         Logger.info(this, "actionName " + actionName);
         
         // Save the Zapier Trigger Data
-        final Optional<ZapierApp> zapierApp = this.zapierAppAPI.config();
         this.zapierAppAPI.registerZap(actionName, triggerURL);
 
         // Build the API response

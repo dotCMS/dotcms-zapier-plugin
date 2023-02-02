@@ -14,6 +14,7 @@ import com.dotcms.rendering.engine.ScriptEngineFactory;
 import com.dotcms.util.CollectionsUtils;
 import com.dotmarketing.beans.Host;
 import com.dotmarketing.business.APILocator;
+import com.dotmarketing.business.web.WebAPILocator;
 import com.dotmarketing.portlets.contentlet.model.Contentlet;
 import com.dotmarketing.portlets.workflows.actionlet.WorkFlowActionlet;
 import com.dotmarketing.portlets.workflows.model.WorkflowActionClassParameter;
@@ -46,6 +47,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
     private static final ZapierAppAPI zapierAppAPI = new ZapierAppAPI();
     private static final long serialVersionUID = 1L;
     private static List<WorkflowActionletParameter> parameterList = createParamList();
+    private static final ResourceUtil resourceUtil = new ResourceUtil();
     
     /**
      * Input parameters to the Workflow action
@@ -69,8 +71,6 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
 
         return paramList.build();
     }
-
-
 
     /**
      * Name of the Workflow action
@@ -132,6 +132,24 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
             throw new WorkflowActionFailureException(e.getMessage(), e);
         }
     }
+
+    private Optional<ZapierApp> findZappierApp () {
+
+        if (null != HttpServletRequestThreadLocal.INSTANCE.getRequest()) {
+
+            try {
+                final Host currentSite = WebAPILocator.getHostWebAPI()
+                        .getCurrentHost(HttpServletRequestThreadLocal.INSTANCE.getRequest());
+                return this.zapierAppAPI.config(currentSite);
+            } catch (Exception e) {
+
+                Logger.debug(this, e.getMessage());
+            }
+        }
+
+        return this.zapierAppAPI.config();
+    }
+
     /**
      * This method gets invoked when an action is performed on a dotCMS content
      * @param processor {@link WorkflowProcessor}
@@ -143,16 +161,9 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
 
         Logger.info(this, "Zapier Workflow action invoked");
 
-        final Optional<ZapierApp> zapierAppOpt = this.zapierAppAPI.config();
+        final Optional<ZapierApp> zapierAppOpt = this.findZappierApp();
 
         if (zapierAppOpt.isPresent()) {
-
-            this.executeScript(processor, params);
-            final ResourceUtil resourceUtil = new ResourceUtil();
-            final Map<String, String> zapierTriggerURLS = zapierAppOpt.get().getZapsRegisterMap();
-
-            Logger.info(this, "Firing zapier actionlet");
-            Logger.info(this, "Available Zapier Actions " + zapierAppOpt.get().getZapsRegisterMap());
 
             final Contentlet contentlet = processor.getContentlet();
 
@@ -162,6 +173,22 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
                 Logger.error(this, "No contentlet found.");
                 return;
             }
+
+            // if allowed content types are set, so we check if this content type is allowed for zapier
+            final Set<String> allowedContentTypes = zapierAppOpt.get().getAllowedContentTypes();
+            final String currentContentTypeVar    = contentlet.getContentType().variable();
+            if (!this.isContentTypeAllowed (allowedContentTypes, currentContentTypeVar)) {
+
+                Logger.info(this, "Content type not allowed: " + currentContentTypeVar);
+                return;
+            }
+
+            this.executeScript(processor, params);
+
+            final Map<String, String> zapierTriggerURLS = zapierAppOpt.get().getZapsRegisterMap();
+
+            Logger.info(this, "Firing zapier actionlet");
+            Logger.info(this, "Available Zapier Actions " + zapierAppOpt.get().getZapsRegisterMap());
 
             final JSONObject dotCMSObject = this.prepareContentletObject(contentlet);
             final WorkflowActionClassParameter webHookUrlParameter = params.get("webHookUrl");
@@ -182,6 +209,16 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
 
             Logger.error(this, "No Zapier configuration found");
         }
+    }
+
+    private boolean isContentTypeAllowed(final Set<String> allowedContentTypes, final String currentContentTypeVar) {
+
+        if (UtilMethods.isSet(allowedContentTypes)) {
+
+            return allowedContentTypes.contains(currentContentTypeVar);
+        }
+
+        return true; // if allowedContentTypes is null or empty, all content types are allowed
     }
 
     private void pushToZapier (final ResourceUtil resourceUtil, final String zapierActionUrl, final JSONObject dotCMSObject) {
