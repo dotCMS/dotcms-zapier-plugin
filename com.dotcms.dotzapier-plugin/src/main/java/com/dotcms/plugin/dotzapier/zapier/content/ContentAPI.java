@@ -1,5 +1,6 @@
 package com.dotcms.plugin.dotzapier.zapier.content;
 
+import com.dotcms.contenttype.business.ContentTypeAPI;
 import com.dotcms.contenttype.model.type.ContentType;
 import com.dotcms.rest.MapToContentletPopulator;
 import com.dotcms.util.ConversionUtils;
@@ -14,11 +15,14 @@ import com.dotmarketing.portlets.workflows.model.WorkflowAction;
 import com.dotmarketing.util.json.JSONException;
 import com.liferay.portal.model.Company;
 import com.liferay.portal.model.User;
+import com.liferay.util.StringPool;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ContentAPI {
@@ -74,14 +78,28 @@ public class ContentAPI {
     }
 
     /**
-     * Get all content types
+     * Get all content types based on the parameter allowedContentTypes
+     * @param allowedContentTypes {@link Set}
+     * @return Map
+     * @throws DotDataException
+     */
+    public Map<String, String> types (final Set<String> allowedContentTypes) throws DotDataException {
+
+        return APILocator.getContentTypeAPI(APILocator.systemUser()).findAll()
+                .stream().filter(contentType -> allowedContentTypes.contains(contentType.variable()))
+                .collect(Collectors.toMap(ContentType::variable, ContentType::name));
+    }
+
+    /**
+     * Get all content types based on the parameter
      * @return Map
      * @throws DotDataException
      */
     public Map<String, String> types () throws DotDataException {
 
         return APILocator.getContentTypeAPI(APILocator.systemUser()).findAll()
-                .stream().collect(Collectors.toMap(ContentType::variable, ContentType::name));
+                .stream()
+                .collect(Collectors.toMap(ContentType::variable, ContentType::name));
     }
 
     /**
@@ -92,6 +110,23 @@ public class ContentAPI {
     public List<Contentlet> contents() throws DotDataException {
 
         return APILocator.getContentletAPI().findAllContent(0, 10);
+    }
+
+    public List<Contentlet> contents(final Set<String> allowedContentTypes) throws DotDataException, DotSecurityException {
+
+        final List<Contentlet> contentSamples = new ArrayList<>();
+        final ContentTypeAPI contentTypeAPI   = APILocator.getContentTypeAPI(APILocator.systemUser());
+
+        for (final String contentTypeVar : allowedContentTypes) {
+
+            final ContentType contentType = contentTypeAPI.find(contentTypeVar);
+            if (null != contentType) {
+                contentSamples.addAll(APILocator.getContentletAPI()
+                        .findByStructure(contentType.inode(), APILocator.systemUser(), false, 1, 0));
+            }
+        }
+
+        return contentSamples.isEmpty()? this.contents(): contentSamples;
     }
 
     /**
@@ -204,4 +239,11 @@ public class ContentAPI {
 
         return url;
     }
+
+    public String createContentKey (final Contentlet contentlet, final String propertyName) {
+
+        final String contentTypeVar = contentlet.getContentType().variable();
+        return contentTypeVar + StringPool.UNDERLINE + propertyName;
+    }
+
 }

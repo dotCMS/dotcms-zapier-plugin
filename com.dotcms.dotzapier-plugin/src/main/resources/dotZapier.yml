@@ -3,17 +3,10 @@ description: "This app connects your dotCMS instance with Zapier. It acts as a w
 iconUrl: "https://cdn.zapier.com/zapier/images/favicon.ico"
 allowExtraParameters: true
 params:
-  zapName:
-    label: "Name of the Zap"
-    value: "Default Zap Config"
-    hidden: false
-    type: "STRING"
-    hint: "One can store the name of the Zap"
-    required: false
   allowedContentTypes:
     label: "Allowed Content types"
-    value: ""
+    value: "*"
     hidden: false
     type: "STRING"
     hint: "Comma separated list of allowed content types, empty means all types are allowed"
-    required: false
+    required: true

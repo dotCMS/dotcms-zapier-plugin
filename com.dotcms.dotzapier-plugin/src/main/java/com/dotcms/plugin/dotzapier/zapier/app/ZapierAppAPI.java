@@ -6,11 +6,17 @@ import com.dotcms.security.apps.Secret;
 import com.dotcms.security.apps.Type;
 import com.dotmarketing.beans.Host;
 import com.dotmarketing.business.APILocator;
+import com.dotmarketing.exception.DotDataException;
+import com.dotmarketing.exception.DotSecurityException;
 import com.dotmarketing.util.Logger;
+import com.dotmarketing.util.UUIDUtil;
 import com.dotmarketing.util.UtilMethods;
+import com.liferay.portal.model.User;
 import com.liferay.util.StringPool;
+import com.liferay.util.StringUtil;
 import io.vavr.Tuple;
 import io.vavr.control.Try;
+import org.apache.commons.lang3.RandomUtils;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,7 +37,6 @@ import static com.dotcms.security.apps.Secret.newSecret;
 public class ZapierAppAPI {
 
     public final static String APP_KEY = Constants.DOT_ZAPIER_APP_KEY;
-    public final static String APP_NAME = "zapName";
     public final static String ALLOWED_TYPES = "allowedContentTypes";
 
     /**
@@ -60,25 +65,67 @@ public class ZapierAppAPI {
     /**
      * Gets the {@link ZapierApp} for system host
      */
-    public void registerZap(final String triggerName, final String url) {
+    public void registerZap(final String triggerName, final String url, final String type) {
 
-        registerZap(APILocator.systemHost(), triggerName, url);
+        registerZap(APILocator.systemHost(), type, triggerName, url);
     }
 
     /**
      * Register a zap into the app config for the system host
      */
-    public void registerZap(final Host site, final String triggerName, final String url) {
+    public void registerZap(final Host site, final String type, final String triggerName, final String url) {
 
         try {
 
-            final Secret secret = newSecret(triggerName.toCharArray(), Type.STRING, false);
+            final User systemUser   = APILocator.systemUser();
+            final String webHookKey = this.generateWebHookKey(site, type, systemUser, url);
+            final Secret secret     = newSecret(url.toCharArray(), Type.STRING, false);
             Logger.debug(this.getClass().getName(), ()-> "Saving the secret: " + triggerName + " - " + url);
-            APILocator.getAppsAPI().saveSecret(APP_KEY, Tuple.of(url, secret), site, APILocator.systemUser());
+            APILocator.getAppsAPI().saveSecret(APP_KEY, Tuple.of(webHookKey, secret), site, systemUser);
         } catch (Exception e) {
 
             Logger.error(this.getClass().getName(), e.getMessage(), e);
         }
+    }
+
+    /**
+     * Returns the web
+     * @param site
+     * @param type
+     * @param user
+     * @return
+     * @throws DotDataException
+     * @throws DotSecurityException
+     */
+    public Set<String> getWebHookUrlsPerType (final Host site, final String type, final User user) throws DotDataException, DotSecurityException {
+
+        final Optional<AppSecrets> appSecrets = APILocator.getAppsAPI().getSecrets(APP_KEY, true, site, user);
+        if (appSecrets.isPresent()) {
+
+            return appSecrets.get().getSecrets().entrySet().stream().filter(entry -> entry.getKey().contains(type))
+                    .map(entry -> entry.getValue().getString()).collect(Collectors.toSet());
+        }
+
+        return Collections.emptySet();
+    }
+
+    private String generateWebHookKey (final Host site, final String type, final User user, final String url) throws DotDataException, DotSecurityException {
+
+        String webHookKey = type + StringPool.PERIOD + "webhookurl";
+        final Optional<AppSecrets> appSecrets = APILocator.getAppsAPI().getSecrets(APP_KEY, true, site, user);
+        if (appSecrets.isPresent()) {
+
+            if (appSecrets.get().getSecrets().containsKey(webHookKey)) {
+
+                final String uuid = Try.of(()-> StringUtil.extractDigits(url).substring(0, 4))
+                        .getOrElse(String.valueOf(RandomUtils.nextInt()));
+
+                webHookKey = StringPool.PERIOD + uuid;
+            }
+        }
+
+        Logger.info(this, "webHookKey: " + webHookKey);
+        return webHookKey;
     }
 
 
@@ -111,10 +158,8 @@ public class ZapierAppAPI {
         }
 
         final Map<String, Secret> secrets = appSecrets.get().getSecrets();
-        final String appName   = Try.of(()->secrets.get(APP_NAME).getString()).getOrElse(StringPool.BLANK);
         final String allowedTypesValue = Try.of(()->secrets.get(ALLOWED_TYPES).getString()).getOrElse(StringPool.BLANK);
 
-        Logger.debug(this.getClass().getName(), ()-> "appName: " + appName);
         Logger.debug(this.getClass().getName(), ()-> "allowedTypesValue: " + allowedTypesValue);
         final Set<String> allowedApps = UtilMethods.isSet(allowedTypesValue)?
                 Stream.of(allowedTypesValue.split(StringPool.COMMA)).map(String::trim).collect(Collectors.toSet()) :
@@ -122,16 +167,24 @@ public class ZapierAppAPI {
         final Map<String, String> zapsRegisterMap = new HashMap<>();
         for (final Map.Entry<String, Secret> zapRegisterEntry : secrets.entrySet()) {
 
-            if (!zapRegisterEntry.getKey().equals(APP_NAME) || !zapRegisterEntry.getKey().equals(ALLOWED_TYPES)) {
+            if (!zapRegisterEntry.getKey().equals(ALLOWED_TYPES)) {
 
                 Logger.debug(this.getClass().getName(), ()-> zapRegisterEntry.getKey() + ": " + zapRegisterEntry.getValue().toString());
                 zapsRegisterMap.put(zapRegisterEntry.getKey(), zapRegisterEntry.getValue().getString());
             }
         }
 
-        final ZapierApp config = new ZapierApp(
-                appName, allowedApps, zapsRegisterMap);
+        final ZapierApp config = new ZapierApp(allowedApps, zapsRegisterMap);
 
         return Optional.ofNullable(config);
+    }
+
+    /***
+     * Returns true if all content types are allowed
+     * @param allowedContentTypes
+     * @return
+     */
+    public boolean isAllowedAllContentTypes(final Set<String> allowedContentTypes) {
+        return !UtilMethods.isSet(allowedContentTypes) || allowedContentTypes.contains("*");
     }
 }

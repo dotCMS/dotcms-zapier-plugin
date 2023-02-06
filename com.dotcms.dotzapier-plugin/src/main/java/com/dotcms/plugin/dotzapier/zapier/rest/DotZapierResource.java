@@ -13,7 +13,9 @@ import com.dotcms.plugin.dotzapier.zapier.content.ContentAPI;
 import com.dotcms.rest.ResponseEntityView;
 import com.dotcms.rest.WebResource;
 import com.dotcms.rest.annotation.NoCache;
+import com.dotmarketing.beans.Host;
 import com.dotmarketing.business.DotStateException;
+import com.dotmarketing.business.web.WebAPILocator;
 import com.dotmarketing.exception.DotDataException;
 import com.dotmarketing.exception.DotSecurityException;
 import com.dotmarketing.portlets.contentlet.model.Contentlet;
@@ -22,6 +24,7 @@ import com.dotmarketing.util.json.JSONArray;
 import com.dotmarketing.util.json.JSONException;
 import com.dotmarketing.util.json.JSONObject;
 import com.liferay.portal.model.User;
+import com.liferay.util.StringPool;
 import io.vavr.control.Try;
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
 import org.apache.commons.io.IOUtils;
@@ -41,6 +44,7 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * This endpoint is in charge of un/subscribed zaps, also provide some helper methods for it in addition to encapsulate the perform create action
@@ -140,7 +144,7 @@ public class DotZapierResource  {
     @Path("/perform-list")
     @NoCache
     @Produces(MediaType.APPLICATION_JSON)
-    public final Response getZapierList(@Context final HttpServletRequest request, @Context final HttpServletResponse response) 
+    public final Response getZapierContentSampleList(@Context final HttpServletRequest request, @Context final HttpServletResponse response)
 		throws URISyntaxException, DotStateException, DotDataException, DotSecurityException, JSONException {
 		// Only allow authenticated users
         new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
@@ -152,27 +156,43 @@ public class DotZapierResource  {
         
         try {
 
-            final List<Contentlet> contentlets = this.contentAPI.contents();
+            final Host currentSite = WebAPILocator.getHostWebAPI().getCurrentHost(request);
+            final Optional<ZapierApp>  zapierApp = this.zapierAppAPI.config(currentSite);
+            final List<Contentlet> contentlets = zapierApp.isPresent() &&
+                    !zapierAppAPI.isAllowedAllContentTypes(zapierApp.get().getAllowedContentTypes())?
+                        this.contentAPI.contents(zapierApp.get().getAllowedContentTypes()): this.contentAPI.contents();
 
             for (final Contentlet contentlet : contentlets) {
                 // Obtain the specific keys from the object
-                final JSONObject temp = new JSONObject();
+                final JSONObject contentJsonObject = new JSONObject();
+                final String contentTypeVar = contentlet.getContentType().variable();
 
-                temp.put("id", contentlet.getIdentifier()).put("identifier", contentlet.getIdentifier())
-                        .put("hostName", contentlet.getHost()).put("url", contentlet.get("url"))
-                        .put("contentType", contentlet.getContentType().variable()).put("title", contentlet.getTitle())
-                        .put("modUserName", contentlet.getModUser()).put("owner", contentlet.getOwner())
-                        .put("archived", contentlet.isArchived()).put("working", contentlet.isWorking())
-                        .put("locked", contentlet.isLocked()).put("live", contentlet.isLive())
-                        .put("modDate", contentlet.getModDate());
+                contentJsonObject.put(this.contentAPI.createContentKey(contentlet, "id"), contentlet.getIdentifier())
+                        .put(this.contentAPI.createContentKey(contentlet, "identifier"), contentlet.getIdentifier())
+                        .put(this.contentAPI.createContentKey(contentlet, "hostName"), contentlet.getHost())
+                        .put(this.contentAPI.createContentKey(contentlet, "url"), contentlet.get("url"))
+                        .put(this.contentAPI.createContentKey(contentlet, "contentType"), contentlet.getContentType().variable())
+                        .put(this.contentAPI.createContentKey(contentlet, "title"), contentlet.getTitle())
+                        .put(this.contentAPI.createContentKey(contentlet, "modUserName"), contentlet.getModUser())
+                        .put(this.contentAPI.createContentKey(contentlet, "owner"), contentlet.getOwner())
+                        .put(this.contentAPI.createContentKey(contentlet, "archived"), contentlet.isArchived())
+                        .put(this.contentAPI.createContentKey(contentlet, "working"), contentlet.isWorking())
+                        .put(this.contentAPI.createContentKey(contentlet, "locked"), contentlet.isLocked())
+                        .put(this.contentAPI.createContentKey(contentlet, "live"), contentlet.isLive())
+                        .put(this.contentAPI.createContentKey(contentlet, "modDate"), contentlet.getModDate());
 
                 // Append the domain information to the URL
-                if (temp.has("url")) {
-                    final String url = resourceUtil.prepareContentletUrl(hostName, temp.getString("url"));
-                    temp.put("url", url);
+                if (contentJsonObject.has("url")) {
+                    final String url = resourceUtil.prepareContentletUrl(hostName, contentJsonObject.getString("url"));
+                    contentJsonObject.put(this.contentAPI.createContentKey(contentlet, "url"), url);
                 }
 
-                dotCMSData.put(temp);
+                for (final Map.Entry entry: contentlet.getMap().entrySet()) {
+
+                    contentJsonObject.put(this.contentAPI.createContentKey(contentlet, entry.getKey().toString()), entry.getValue());
+                }
+
+                dotCMSData.put(contentJsonObject);
             }
         } catch(Exception ex) {
             Logger.error(this, "Unable to process getZapierList request");
@@ -207,6 +227,57 @@ public class DotZapierResource  {
             throws URISyntaxException, DotStateException, DotDataException, DotSecurityException, JSONException {
         // Only allow authenticated users
         new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
+
+        Logger.info(this, "Perform Type List Zapier API invoked");
+        final JSONObject userResponse = new JSONObject();
+
+        this.contentAPI.types().entrySet().forEach(entry ->
+                Try.run(()->userResponse.put(entry.getKey(), entry.getValue())));
+
+        // Build the API response
+        return Response.status(200).entity(userResponse).build();
+    }
+
+    /**
+     * This endpoint provides the list of the allowed types to execute
+     * It is consumed by the Zapier perform action list operation. It is invoked for each Zap
+     * at the time of creation via the Zapier UI
+     *
+     * This endpoint requires authentication.
+     *
+     * @return It will return list of dotCMS content
+     *
+     * {
+     *     "type-var1":"type-var1",
+     *     "type-var2":"type-var2"
+     * }
+     */
+    @GET
+    @Path("/perform-allowed-type-list")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public final Response getZapierAlloweedTypeList(@Context final HttpServletRequest request, @Context final HttpServletResponse response)
+            throws Exception {
+        // Only allow authenticated users
+        new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
+
+        final Host currentSite = WebAPILocator.getHostWebAPI().getCurrentHost(request);
+        final Optional<ZapierApp> zapierAppOpt = this.zapierAppAPI.config(currentSite);
+
+        if (zapierAppOpt.isPresent()) {
+
+            final Set<String> allowedContentTypes = zapierAppOpt.get().getAllowedContentTypes();
+            if (!allowedContentTypes.contains("*")) { // if do not want all content types
+
+                final JSONObject userResponse = new JSONObject();
+
+                this.contentAPI.types(allowedContentTypes).entrySet().forEach(entry ->
+                        Try.run(()->userResponse.put(entry.getKey(), entry.getValue())));
+
+                // Build the API response
+                return Response.status(200).entity(userResponse).build();
+            }
+        }
 
         Logger.info(this, "Perform Type List Zapier API invoked");
         final JSONObject userResponse = new JSONObject();
@@ -300,7 +371,7 @@ public class DotZapierResource  {
     @DELETE
     @Path("/unsubscribe")
     @NoCache
-    @Produces(MediaType.APPLICATION_JSON) // todo: this is done
+    @Produces(MediaType.APPLICATION_JSON) // todo: we have to refactor this to reflect the new approach
     public final Response deleteUnSubscribe(@Context final HttpServletRequest request, @Context final HttpServletResponse response) 
 		throws URISyntaxException, DotStateException, DotDataException, DotSecurityException {
 		// Only allow authenticated users
@@ -351,12 +422,15 @@ public class DotZapierResource  {
 		final JSONObject requestBody = new JSONObject(jsonString);
         final String actionName = requestBody.optString("triggerName", "");
         final String triggerURL = requestBody.optString("url", "");
+        final String type       = requestBody.optString("type", "");
+
 
         Logger.info(this, "URL " + triggerURL);
         Logger.info(this, "actionName " + actionName);
+        Logger.info(this, "type " + type);
         
         // Save the Zapier Trigger Data
-        this.zapierAppAPI.registerZap(actionName, triggerURL);
+        this.zapierAppAPI.registerZap(actionName, triggerURL, type);
 
         // Build the API response
         final ResponseEntityView responseEntityView = new ResponseEntityView(ImmutableMap.of("message", "Zapier hook added"));

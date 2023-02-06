@@ -28,12 +28,15 @@ const triggerOperation = async (z, bundle) => {
  *                    derived attribute in the zapier bundle.
  */
 const subscribeOperation = async (z, bundle, triggerName) => {
-    const triggerUrl = bundle.targetUrl;
+
+    const triggerUrl  = bundle.targetUrl;
+    const contentType = bundle.inputData.contentType;
 
     const options = {
       url: bundle.authData.url + dotZapierPluginUrl +  'subscribe',
       method: 'POST',
       body: {
+        type: contentType,
         url: triggerUrl,
         triggerName: triggerName,
       }

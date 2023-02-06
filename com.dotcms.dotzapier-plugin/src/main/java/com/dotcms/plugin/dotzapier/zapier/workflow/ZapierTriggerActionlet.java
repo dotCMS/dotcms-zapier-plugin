@@ -9,6 +9,7 @@ import com.dotcms.mock.response.BaseResponse;
 import com.dotcms.plugin.dotzapier.util.ResourceUtil;
 import com.dotcms.plugin.dotzapier.zapier.app.ZapierApp;
 import com.dotcms.plugin.dotzapier.zapier.app.ZapierAppAPI;
+import com.dotcms.plugin.dotzapier.zapier.content.ContentAPI;
 import com.dotcms.rendering.engine.ScriptEngine;
 import com.dotcms.rendering.engine.ScriptEngineFactory;
 import com.dotcms.util.CollectionsUtils;
@@ -45,6 +46,8 @@ import java.util.Set;
 public class ZapierTriggerActionlet extends WorkFlowActionlet {
     private final static String ENGINE = "Velocity";
     private static final ZapierAppAPI zapierAppAPI = new ZapierAppAPI();
+
+    private static final ContentAPI contentAPI   = new ContentAPI();
     private static final long serialVersionUID = 1L;
     private static List<WorkflowActionletParameter> parameterList = createParamList();
     private static final ResourceUtil resourceUtil = new ResourceUtil();
@@ -175,9 +178,11 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
             }
 
             // if allowed content types are set, so we check if this content type is allowed for zapier
-            final Set<String> allowedContentTypes = zapierAppOpt.get().getAllowedContentTypes();
-            final String currentContentTypeVar    = contentlet.getContentType().variable();
-            if (!this.isContentTypeAllowed (allowedContentTypes, currentContentTypeVar)) {
+            final Set<String> allowedContentTypes   = zapierAppOpt.get().getAllowedContentTypes();
+            final boolean areAllowedAllContentTypes = zapierAppAPI.isAllowedAllContentTypes (allowedContentTypes);
+            final String currentContentTypeVar      = contentlet.getContentType().variable();
+            if (!areAllowedAllContentTypes && // if not all types are allowed and the type is not allowed
+                    !allowedContentTypes.contains(currentContentTypeVar)) {
 
                 Logger.info(this, "Content type not allowed: " + currentContentTypeVar);
                 return;
@@ -185,7 +190,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
 
             this.executeScript(processor, params);
 
-            final Map<String, String> zapierTriggerURLS = zapierAppOpt.get().getZapsRegisterMap();
+            final Map<String, String> zapierWebHookTriggerURLS = zapierAppOpt.get().getZapsRegisterMap();
 
             Logger.info(this, "Firing zapier actionlet");
             Logger.info(this, "Available Zapier Actions " + zapierAppOpt.get().getZapsRegisterMap());
@@ -197,10 +202,14 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
 
                 this.pushToZapier(resourceUtil, webHookUrl, dotCMSObject);
             } else {
-                final Set<String> appWebHookUrls = zapierTriggerURLS.keySet();
-                if (null != appWebHookUrls) {
-                    for (final String zapierActionUrl : appWebHookUrls) {
 
+                for (final Map.Entry<String, String> webHookEntry : zapierWebHookTriggerURLS.entrySet()) {
+
+                    final String webHookKey = webHookEntry.getKey();
+                    // if exists any hook that contains the current content type variable
+                    if (UtilMethods.isSet(webHookKey) && webHookKey.contains(currentContentTypeVar)) {
+
+                        final String zapierActionUrl = webHookEntry.getValue();
                         this.pushToZapier(resourceUtil, zapierActionUrl, dotCMSObject);
                     }
                 }
@@ -210,6 +219,8 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
             Logger.error(this, "No Zapier configuration found");
         }
     }
+
+
 
     private boolean isContentTypeAllowed(final Set<String> allowedContentTypes, final String currentContentTypeVar) {
 
@@ -246,7 +257,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
         try {
             final String identifier = contentlet.getIdentifier();
             final String host = contentlet.getHost();
-            final String contentType = contentlet.getContentType().name();
+            final String contentType = contentlet.getContentType().variable();
             final String title = contentlet.getTitle();
             final String modUserName = contentlet.getModUser();
             final String modDate = contentlet.getModDate().toString();
@@ -256,24 +267,25 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
             final boolean isLocked = contentlet.isLocked();
             final boolean isLive = contentlet.isLive();
             
-            dotCMSObject.put("id", identifier);
-            dotCMSObject.put("identifier", identifier);
-            dotCMSObject.put("hostName", host);
-            dotCMSObject.put("contentType", contentType);
-            dotCMSObject.put("title", title);
-            dotCMSObject.put("modUserName", modUserName);
-            dotCMSObject.put("modDate", modDate);
-            dotCMSObject.put("owner", owner);
-            dotCMSObject.put("archived", isArchived);
-            dotCMSObject.put("working", isWorking);
-            dotCMSObject.put("locked", isLocked);
-            dotCMSObject.put("live", isLive);
+            dotCMSObject.put(contentAPI.createContentKey(contentlet, "id"), identifier);
+            dotCMSObject.put(contentAPI.createContentKey(contentlet, "identifier"), identifier);
+            dotCMSObject.put(contentAPI.createContentKey(contentlet, "hostName"), host);
+            dotCMSObject.put(contentAPI.createContentKey(contentlet, "contentType"), contentType);
+            dotCMSObject.put(contentAPI.createContentKey(contentlet, "title"), title);
+            dotCMSObject.put(contentAPI.createContentKey(contentlet, "modUserName"), modUserName);
+            dotCMSObject.put(contentAPI.createContentKey(contentlet, "modDate"), modDate);
+            dotCMSObject.put(contentAPI.createContentKey(contentlet, "owner"), owner);
+            dotCMSObject.put(contentAPI.createContentKey(contentlet, "archived"), isArchived);
+            dotCMSObject.put(contentAPI.createContentKey(contentlet, "working"), isWorking);
+            dotCMSObject.put(contentAPI.createContentKey(contentlet, "locked"), isLocked);
+            dotCMSObject.put(contentAPI.createContentKey(contentlet, "live"), isLive);
 
             for (final Map.Entry entry: contentlet.getMap().entrySet()) {
 
-                dotCMSObject.put(entry.getKey().toString(), entry.getValue());
+                dotCMSObject.put(contentAPI.createContentKey(contentlet, entry.getKey().toString()), entry.getValue());
             }
 
+            Logger.info(this, "dotCMSObject = " + dotCMSObject);
         }
         catch(Exception ex) {
             Logger.error(this, "Unable to prepare the contentlet object to be sent to Zapier");
