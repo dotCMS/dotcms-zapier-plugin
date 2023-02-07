@@ -5,6 +5,7 @@
 
 package com.dotcms.plugin.dotzapier.zapier.rest;
 
+import com.dotcms.contenttype.model.field.Field;
 import com.dotcms.plugin.dotzapier.util.ContentParser;
 import com.dotcms.plugin.dotzapier.util.ResourceUtil;
 import com.dotcms.plugin.dotzapier.zapier.app.ZapierApp;
@@ -41,6 +42,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -64,7 +66,7 @@ public class DotZapierResource  {
      * @return It will return a message
      * {"server: "online"}
      */
-    @GET
+   /* @GET
     @Path("/hello")
     @NoCache
     @Produces(MediaType.APPLICATION_JSON)
@@ -73,7 +75,7 @@ public class DotZapierResource  {
 
         final ResponseEntityView responseEntityView = new ResponseEntityView(ImmutableMap.of("hello", "all"));
         return Response.ok(responseEntityView).build();
-    }
+    }*/
 
     /**
      * This is a public endpoint to verify if the dotZapier plugin is reachable or not
@@ -158,6 +160,16 @@ public class DotZapierResource  {
 
             final Host currentSite = WebAPILocator.getHostWebAPI().getCurrentHost(request);
             final Optional<ZapierApp>  zapierApp = this.zapierAppAPI.config(currentSite);
+
+            final Set<String> types = zapierApp.isPresent()?
+                    zapierApp.get().getAllowedContentTypes(): Collections.emptySet();
+
+            final Map<String, Object> superSampleContentlet = this.contentAPI.createSuperSampleContentlet(types);
+            Logger.info(this, "superSampleContentlet = " + superSampleContentlet);
+            final JSONObject sumperSampleContentJsonObject = new JSONObject();
+            superSampleContentlet.entrySet().forEach(entry -> Try.run(()-> sumperSampleContentJsonObject.put(entry.getKey(), entry.getValue())));
+            dotCMSData.put(superSampleContentlet);
+
             final List<Contentlet> contentlets = zapierApp.isPresent() &&
                     !zapierAppAPI.isAllowedAllContentTypes(zapierApp.get().getAllowedContentTypes())?
                         this.contentAPI.contents(zapierApp.get().getAllowedContentTypes()): this.contentAPI.contents();
@@ -181,15 +193,10 @@ public class DotZapierResource  {
                         .put(this.contentAPI.createContentKey(contentlet, "live"), contentlet.isLive())
                         .put(this.contentAPI.createContentKey(contentlet, "modDate"), contentlet.getModDate());
 
-                // Append the domain information to the URL
-                if (contentJsonObject.has("url")) {
-                    final String url = resourceUtil.prepareContentletUrl(hostName, contentJsonObject.getString("url"));
-                    contentJsonObject.put(this.contentAPI.createContentKey(contentlet, "url"), url);
-                }
 
-                for (final Map.Entry entry: contentlet.getMap().entrySet()) {
+                for (final Field field: contentlet.getContentType().fields()) {
 
-                    contentJsonObject.put(this.contentAPI.createContentKey(contentlet, entry.getKey().toString()), entry.getValue());
+                    contentJsonObject.put(this.contentAPI.createContentKey(contentlet, field.variable()), contentlet.get(field.variable()));
                 }
 
                 dotCMSData.put(contentJsonObject);

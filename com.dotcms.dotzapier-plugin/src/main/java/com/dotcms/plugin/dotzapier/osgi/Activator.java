@@ -2,6 +2,7 @@ package com.dotcms.plugin.dotzapier.osgi;
 
 import com.dotcms.plugin.dotzapier.util.AppUtil;
 import com.dotcms.plugin.dotzapier.zapier.app.ZapierAppAPI;
+import com.dotcms.plugin.dotzapier.zapier.content.ContentAPI;
 import com.dotcms.plugin.dotzapier.zapier.rest.DotZapierResource;
 import com.dotcms.plugin.dotzapier.zapier.viewtools.ZapierToolInfo;
 import com.dotcms.plugin.dotzapier.zapier.workflow.ZapierTriggerActionlet;
@@ -27,6 +28,8 @@ public class Activator extends GenericBundleActivator {
 
 		//Init Services
 		this.initializeServices(context);
+
+		new ContentAPI();
 
 		//Register Resource
 		RestServiceUtil.addResource(DotZapierResource.class);
