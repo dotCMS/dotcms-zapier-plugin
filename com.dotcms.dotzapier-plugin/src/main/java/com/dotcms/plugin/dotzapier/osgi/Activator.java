@@ -29,8 +29,6 @@ public class Activator extends GenericBundleActivator {
 		//Init Services
 		this.initializeServices(context);
 
-		new ContentAPI();
-
 		//Register Resource
 		RestServiceUtil.addResource(DotZapierResource.class);
 

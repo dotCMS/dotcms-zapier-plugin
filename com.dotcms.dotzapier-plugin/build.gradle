@@ -3,14 +3,19 @@ plugins {
 }
 
 sourceCompatibility = '1.8'
-version = '1.0.1'
+version = '1.22.12'
 
 repositories {
     maven { url "http://repo.dotcms.com/artifactory/libs-release" }
 }
 
+configurations {
+    osgiLibs
+}
+
 dependencies {
-    compile('com.dotcms:dotcms:22.05') { transitive = true }
+    implementation('com.dotcms:dotcms:22.10') { transitive = true }
+
 }
 
 import java.util.jar.*
@@ -25,12 +30,43 @@ jar {
                 'Bundle-Description': 'dotCMS - Zapier Integration example',
                 'Bundle-DocURL': 'https://dotcms.com/',
                 'Bundle-Activator': 'com.dotcms.plugin.dotzapier.osgi.Activator',
-                'Import-Package': '*;version=0'
+                'Bundle-ClassPath' : "${classPathLibraries()}",
+                'DynamicImport-Package': '*',
+                'Import-Package': '''
+                    *;version=0
+                '''
         )
     }
 }
+
+task cleanLibFiles(type: Delete) {
+    delete fileTree("src/main/resources/libs").matching {
+        include "**/*"
+    }
+}
+
+task copyToLib(type: Copy) {
+    from configurations.osgiLibs
+    into "src/main/resources/libs"
+
+}
+
+
+compileJava.dependsOn copyToLib
+
 jar.finalizedBy 'fragmentJar'
 
+def classPathLibraries() {
+
+    def bundleClassPath = "";
+    fileTree("src/main/resources/libs").filter { it.isFile() }.each { bundleClassPath += "libs/" + it.name + "," }
+
+    if (bundleClassPath != "") {
+        bundleClassPath = '.,' + bundleClassPath
+    }
+
+    return bundleClassPath
+}
 /////////////////////////
 //Fragment jar
 /////////////////////////

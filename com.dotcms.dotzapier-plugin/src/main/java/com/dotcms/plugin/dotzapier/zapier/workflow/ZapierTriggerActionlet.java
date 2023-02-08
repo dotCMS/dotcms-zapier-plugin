@@ -142,7 +142,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
 
             try {
                 final Host currentSite = WebAPILocator.getHostWebAPI()
-                        .getCurrentHost(HttpServletRequestThreadLocal.INSTANCE.getRequest());
+                        .getCurrentHostNoThrow(HttpServletRequestThreadLocal.INSTANCE.getRequest());
                 return this.zapierAppAPI.config(currentSite);
             } catch (Exception e) {
 

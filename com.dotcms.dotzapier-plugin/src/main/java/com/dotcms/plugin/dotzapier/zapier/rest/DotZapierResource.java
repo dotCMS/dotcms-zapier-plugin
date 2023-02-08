@@ -27,7 +27,7 @@ import com.dotmarketing.util.json.JSONObject;
 import com.liferay.portal.model.User;
 import com.liferay.util.StringPool;
 import io.vavr.control.Try;
-import jersey.repackaged.com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap;
 import org.apache.commons.io.IOUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -158,7 +158,7 @@ public class DotZapierResource  {
         
         try {
 
-            final Host currentSite = WebAPILocator.getHostWebAPI().getCurrentHost(request);
+            final Host currentSite = WebAPILocator.getHostWebAPI().getCurrentHostNoThrow(request);
             final Optional<ZapierApp>  zapierApp = this.zapierAppAPI.config(currentSite);
 
             final Set<String> types = zapierApp.isPresent()?
@@ -268,7 +268,7 @@ public class DotZapierResource  {
         // Only allow authenticated users
         new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
 
-        final Host currentSite = WebAPILocator.getHostWebAPI().getCurrentHost(request);
+        final Host currentSite = WebAPILocator.getHostWebAPI().getCurrentHostNoThrow(request);
         final Optional<ZapierApp> zapierAppOpt = this.zapierAppAPI.config(currentSite);
 
         if (zapierAppOpt.isPresent()) {

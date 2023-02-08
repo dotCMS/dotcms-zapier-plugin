@@ -9,7 +9,6 @@ import com.dotmarketing.business.APILocator;
 import com.dotmarketing.exception.DotDataException;
 import com.dotmarketing.exception.DotSecurityException;
 import com.dotmarketing.util.Logger;
-import com.dotmarketing.util.UUIDUtil;
 import com.dotmarketing.util.UtilMethods;
 import com.liferay.portal.model.User;
 import com.liferay.util.StringPool;
@@ -118,7 +117,7 @@ public class ZapierAppAPI {
             if (appSecrets.get().getSecrets().containsKey(webHookKey)) {
 
                 final String uuid = Try.of(()-> StringUtil.extractDigits(url).substring(0, 4))
-                        .getOrElse(String.valueOf(RandomUtils.nextInt()));
+                        .getOrElse(String.valueOf(RandomUtils.nextInt(0, Integer.MAX_VALUE)));
 
                 webHookKey = StringPool.PERIOD + uuid;
             }
