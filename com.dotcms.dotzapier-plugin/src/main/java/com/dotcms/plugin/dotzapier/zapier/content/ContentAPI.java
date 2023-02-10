@@ -257,7 +257,7 @@ public class ContentAPI {
     public String createContentKey (final ContentType type, final String propertyName) {
 
         final String contentTypeVar = type.variable();
-        return contentTypeVar + StringPool.UNDERLINE + propertyName;
+        return contentTypeVar + StringPool.PERIOD + propertyName;
     }
 
     public Map<String, Object> createSuperSampleContentlet(final Set<String> types) throws DotDataException, DotSecurityException {
@@ -288,13 +288,15 @@ public class ContentAPI {
                 ContentType contentType = contentTypeMap.get(contentTypeInode);
                 if (null == contentType) {
 
+                    contentType = contentTypeAPI.find(contentTypeInode);
+
                     if (!(null == types || types.isEmpty() || types.contains("*")))  {
-                        if(!types.contains(contentType.variable())) {
+                        if(contentType == null || !types.contains(contentType.variable())) {
                             continue;
                         }
                     }
 
-                    contentType = contentTypeAPI.find(contentTypeInode);
+
                     if (null != contentType) {
                         contentTypeMap.put(contentTypeInode, contentType);
                         superSimpleContentlet.put(this.createContentKey(contentType, "id"), "bc9a1d37-dd2d-4d49-a29d-0c9be740bfaf");

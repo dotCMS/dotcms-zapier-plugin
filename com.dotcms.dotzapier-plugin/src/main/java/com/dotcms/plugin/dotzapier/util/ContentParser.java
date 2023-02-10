@@ -6,6 +6,7 @@ package com.dotcms.plugin.dotzapier.util;
 
 import com.dotcms.plugin.dotzapier.zapier.content.ContentAPI;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.vavr.Lazy;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,7 +17,7 @@ import java.util.Map;
  */
 public class ContentParser {
 
-    private final Map<String, InputParser> inputParserMap = this.getInputParserMap();
+    private final Lazy<Map<String, InputParser>> inputParserMap = Lazy.of(()->this.getInputParserMap());
 
     private Map<String, InputParser> getInputParserMap() {
 
@@ -36,7 +37,7 @@ public class ContentParser {
      */
     public final Map<String, Object> parseContent(final String inputFormat, final String content) throws Exception {
 
-        return this.inputParserMap.getOrDefault(inputFormat, inputParserMap.get(ContentAPI.JSON_FORMAT)).parse(content);
+        return this.inputParserMap.get().getOrDefault(inputFormat, inputParserMap.get().get(ContentAPI.JSON_FORMAT)).parse(content);
     }
 
 }

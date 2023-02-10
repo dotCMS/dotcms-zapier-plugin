@@ -25,7 +25,6 @@ import com.dotmarketing.util.json.JSONArray;
 import com.dotmarketing.util.json.JSONException;
 import com.dotmarketing.util.json.JSONObject;
 import com.liferay.portal.model.User;
-import com.liferay.util.StringPool;
 import io.vavr.control.Try;
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
 import org.apache.commons.io.IOUtils;
@@ -116,6 +115,79 @@ public class DotZapierResource  {
         return Response.ok(responseEntityView).build();
     }
 
+    private JSONArray getDotCMSData (final HttpServletRequest request) {
+
+        final JSONArray dotCMSData = new JSONArray();
+
+        try {
+
+            final Host currentSite = WebAPILocator.getHostWebAPI().getCurrentHost(request);
+            final Optional<ZapierApp>  zapierApp = this.zapierAppAPI.config(currentSite);
+
+            final Set<String> types = zapierApp.isPresent()?
+                    zapierApp.get().getAllowedContentTypes(): Collections.emptySet();
+
+            final List<Contentlet> contentlets = zapierApp.isPresent() &&
+                    !zapierAppAPI.isAllowedAllContentTypes(zapierApp.get().getAllowedContentTypes())?
+                    this.contentAPI.contents(zapierApp.get().getAllowedContentTypes()): this.contentAPI.contents();
+
+            for (final Contentlet contentlet : contentlets) {
+                // Obtain the specific keys from the object
+                final JSONObject contentJsonObject = new JSONObject();
+                final String contentTypeVar = contentlet.getContentType().variable();
+                final String title = contentlet.getTitle();
+
+
+                contentJsonObject.put("title", title).put("name", title)
+                        .put(this.contentAPI.createContentKey(contentlet, "id"), contentlet.getIdentifier())
+                        .put(this.contentAPI.createContentKey(contentlet, "identifier"), contentlet.getIdentifier())
+                        .put(this.contentAPI.createContentKey(contentlet, "hostName"), contentlet.getHost())
+                        .put(this.contentAPI.createContentKey(contentlet, "contentType"), contentlet.getContentType().variable())
+                        .put(this.contentAPI.createContentKey(contentlet, "title"), contentlet.getTitle())
+                        .put(this.contentAPI.createContentKey(contentlet, "modUserName"), contentlet.getModUser())
+                        .put(this.contentAPI.createContentKey(contentlet, "owner"), contentlet.getOwner())
+                        .put(this.contentAPI.createContentKey(contentlet, "archived"), contentlet.isArchived())
+                        .put(this.contentAPI.createContentKey(contentlet, "working"), contentlet.isWorking())
+                        .put(this.contentAPI.createContentKey(contentlet, "locked"), contentlet.isLocked())
+                        .put(this.contentAPI.createContentKey(contentlet, "live"), contentlet.isLive())
+                        .put(this.contentAPI.createContentKey(contentlet, "modDate"), contentlet.getModDate());
+
+                for (final Field field: contentlet.getContentType().fields()) {
+
+                    final Object value = contentlet.get(field.variable());
+
+                    contentJsonObject.put(this.contentAPI.createContentKey(contentlet, field.variable()), null == value? "Example Value":value.toString());
+                }
+
+
+                dotCMSData.put(contentJsonObject);
+            }
+        } catch(Exception ex) {
+            Logger.error(this, "Unable to process getZapierList request");
+            Logger.error(this, ex.getMessage());
+        }
+
+        return dotCMSData;
+    }
+
+    @GET
+    @Path("/perform-list-raw")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public final Response getZapierContentSampleListRaw(@Context final HttpServletRequest request, @Context final HttpServletResponse response)
+            throws URISyntaxException, DotStateException, DotDataException, DotSecurityException, JSONException {
+
+        new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
+
+        Logger.info(this, "Perform List Zapier Raw API invoked");
+        final ResourceUtil resourceUtil = new ResourceUtil();
+        final String hostName = this.getHostName(request);
+        final JSONArray dotCMSData = this.getDotCMSData(request);
+
+        // Build the API response
+        return Response.status(200).entity(dotCMSData).build();
+    }
+
     /**
      * This endpoint provides the list of most recent content generated on dotCMS
      * It is consumed by the Zapier perform list operation. It is invoked for each Zap 
@@ -154,58 +226,7 @@ public class DotZapierResource  {
         Logger.info(this, "Perform List Zapier API invoked");
         final ResourceUtil resourceUtil = new ResourceUtil();
         final String hostName = this.getHostName(request);
-        final JSONArray dotCMSData = new JSONArray();
-        
-        try {
-
-            final Host currentSite = WebAPILocator.getHostWebAPI().getCurrentHost(request);
-            final Optional<ZapierApp>  zapierApp = this.zapierAppAPI.config(currentSite);
-
-            final Set<String> types = zapierApp.isPresent()?
-                    zapierApp.get().getAllowedContentTypes(): Collections.emptySet();
-
-            final Map<String, Object> superSampleContentlet = this.contentAPI.createSuperSampleContentlet(types);
-            Logger.info(this, "superSampleContentlet = " + superSampleContentlet);
-            final JSONObject sumperSampleContentJsonObject = new JSONObject();
-            superSampleContentlet.entrySet().forEach(entry -> Try.run(()-> sumperSampleContentJsonObject.put(entry.getKey(), entry.getValue())));
-            dotCMSData.put(superSampleContentlet);
-
-            final List<Contentlet> contentlets = zapierApp.isPresent() &&
-                    !zapierAppAPI.isAllowedAllContentTypes(zapierApp.get().getAllowedContentTypes())?
-                        this.contentAPI.contents(zapierApp.get().getAllowedContentTypes()): this.contentAPI.contents();
-
-            for (final Contentlet contentlet : contentlets) {
-                // Obtain the specific keys from the object
-                final JSONObject contentJsonObject = new JSONObject();
-                final String contentTypeVar = contentlet.getContentType().variable();
-
-                contentJsonObject.put(this.contentAPI.createContentKey(contentlet, "id"), contentlet.getIdentifier())
-                        .put(this.contentAPI.createContentKey(contentlet, "identifier"), contentlet.getIdentifier())
-                        .put(this.contentAPI.createContentKey(contentlet, "hostName"), contentlet.getHost())
-                        .put(this.contentAPI.createContentKey(contentlet, "url"), contentlet.get("url"))
-                        .put(this.contentAPI.createContentKey(contentlet, "contentType"), contentlet.getContentType().variable())
-                        .put(this.contentAPI.createContentKey(contentlet, "title"), contentlet.getTitle())
-                        .put(this.contentAPI.createContentKey(contentlet, "modUserName"), contentlet.getModUser())
-                        .put(this.contentAPI.createContentKey(contentlet, "owner"), contentlet.getOwner())
-                        .put(this.contentAPI.createContentKey(contentlet, "archived"), contentlet.isArchived())
-                        .put(this.contentAPI.createContentKey(contentlet, "working"), contentlet.isWorking())
-                        .put(this.contentAPI.createContentKey(contentlet, "locked"), contentlet.isLocked())
-                        .put(this.contentAPI.createContentKey(contentlet, "live"), contentlet.isLive())
-                        .put(this.contentAPI.createContentKey(contentlet, "modDate"), contentlet.getModDate());
-
-
-                for (final Field field: contentlet.getContentType().fields()) {
-
-                    contentJsonObject.put(this.contentAPI.createContentKey(contentlet, field.variable()), contentlet.get(field.variable()));
-                }
-
-                dotCMSData.put(contentJsonObject);
-            }
-        } catch(Exception ex) {
-            Logger.error(this, "Unable to process getZapierList request");
-            Logger.error(this, ex.getMessage());
-        }
-        
+        final JSONArray dotCMSData = this.getDotCMSData(request);
         // Build the API response
         final JSONObject userResponse = new JSONObject();
         userResponse.put("data", dotCMSData.toString());
@@ -384,10 +405,9 @@ public class DotZapierResource  {
 		// Only allow authenticated users
         new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
 
-        Logger.info(this, "Unsubscribe Zapier API invoked");
-
         final String triggerUrl = request.getParameter("triggerUrl");
 
+        Logger.info(this, "Unsubscribe Zapier API invoked, triggerUrl: " + triggerUrl);
         // Update the Zapier Trigger Data
         this.zapierAppAPI.unregisterZap(triggerUrl);
 

@@ -55,7 +55,11 @@ public class ZapierAppAPI {
         try {
 
             Logger.debug(this.getClass().getName(), ()-> "Deleting the secret: " + triggerName);
-            APILocator.getAppsAPI().deleteSecret(APP_KEY, new HashSet<>(Arrays.asList(triggerName)), site, APILocator.systemUser());
+            final Set<String> appKeys = this.getAppKeysBasedOnWebHookUrls(site, triggerName, APILocator.systemUser());
+
+            if (UtilMethods.isSet(appKeys)) {
+                APILocator.getAppsAPI().deleteSecret(APP_KEY, appKeys, site, APILocator.systemUser());
+            }
         } catch (Exception e) {
 
             Logger.error(this.getClass().getName(), e.getMessage(), e);
@@ -86,6 +90,27 @@ public class ZapierAppAPI {
 
             Logger.error(this.getClass().getName(), e.getMessage(), e);
         }
+    }
+
+    /**
+     * Returns the keys based on the value
+     * @param site
+     * @param type
+     * @param user
+     * @return
+     * @throws DotDataException
+     * @throws DotSecurityException
+     */
+    public Set<String> getAppKeysBasedOnWebHookUrls (final Host site, final String webHookUrl, final User user) throws DotDataException, DotSecurityException {
+
+        final Optional<AppSecrets> appSecrets = APILocator.getAppsAPI().getSecrets(APP_KEY, true, site, user);
+        if (appSecrets.isPresent()) {
+
+            return appSecrets.get().getSecrets().entrySet().stream().filter(entry -> entry.getValue().getString().equals(webHookUrl))
+                    .map(entry -> entry.getKey().toString()).collect(Collectors.toSet());
+        }
+
+        return Collections.emptySet();
     }
 
     /**
