@@ -49,7 +49,7 @@ const subscribeOperation = async (z, bundle) => {
 */
 module.exports = {
     key: triggerName,
-    noun: 'Content',
+    noun: 'Contentlet',
     display: {
         label: 'Dot Content Event ',
         description: 'Triggers when a content is modified.',

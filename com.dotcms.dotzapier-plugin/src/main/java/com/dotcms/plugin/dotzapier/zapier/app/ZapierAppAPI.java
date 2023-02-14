@@ -145,7 +145,7 @@ public class ZapierAppAPI {
                 final String uuid = Try.of(()-> StringUtil.extractDigits(url).substring(0, 4))
                         .getOrElse(String.valueOf(RandomUtils.nextInt()));
 
-                webHookKey = StringPool.PERIOD + uuid;
+                webHookKey = webHookKey + StringPool.PERIOD + uuid;
             }
         }
 

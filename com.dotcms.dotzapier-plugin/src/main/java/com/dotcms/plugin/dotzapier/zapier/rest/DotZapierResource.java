@@ -138,7 +138,7 @@ public class DotZapierResource  {
                 final String title = contentlet.getTitle();
 
 
-                contentJsonObject.put("title", title).put("name", title)
+                contentJsonObject
                         .put(this.contentAPI.createContentKey(contentlet, "id"), contentlet.getIdentifier())
                         .put(this.contentAPI.createContentKey(contentlet, "identifier"), contentlet.getIdentifier())
                         .put(this.contentAPI.createContentKey(contentlet, "hostName"), contentlet.getHost())

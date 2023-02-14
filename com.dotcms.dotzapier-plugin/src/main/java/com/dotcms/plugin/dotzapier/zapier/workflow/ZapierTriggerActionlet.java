@@ -238,7 +238,12 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
             // Obtain the stored Subscribe URL
             Logger.info(this.getClass().getName(), "zapierActionUrl= " + zapierActionUrl);
             // Publish to Zapier
-            resourceUtil.publishToZapier(zapierActionUrl, dotCMSObject);
+            if (resourceUtil.publishToZapier(zapierActionUrl, dotCMSObject)) {
+
+                Logger.info(this.getClass().getName(), "The zapierActionUrl= " + zapierActionUrl + " was sent ok");
+            } else {
+                Logger.info(this.getClass().getName(), "The zapierActionUrl= " + zapierActionUrl + " NO OK");
+            }
         } catch (Exception ex) {
             Logger.error(this, "Unable to obtain Zapier action url");
             Logger.error(this, ex.getMessage());
