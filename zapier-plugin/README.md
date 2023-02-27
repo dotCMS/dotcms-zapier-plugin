@@ -1,14 +1,10 @@
-# dotCMS Zapier
+# dotCMS Zapier JS Integration
 
-Zapier Integration for dotCMS. 
+This repo contains the code for the dotCMS Zapier Integration (hosted on Zapier's platform). 
 
-It allows the user to create content on dotCMS via Zapier
-
-## Zaps
-
-triggers => DotCMS to Zapier [Reads data from dotCMS API]
-
-creates => Zapier to dotCMS [Sends data to dotCMS API]
+It allows the user to use both Creates and Triggers in Zapier
+1. Creates => Zapier Zap to dotCMS Content.  Use this to create/modify a dotCMS content object from Zapier.
+2. Triggers => DotCMS content to Zapier Zap.  Use this to trigger an Zapier action when a dotCMS content object is modified. 
 
 ## Zapier Actions
 
@@ -34,7 +30,7 @@ Test: `npm run test`
 
 ## dotCMS Commands
 
-Supported dotCMS commands on the Zapier platform to operations on dotCMS
+When "Zapping" content to dotCMS, we supported the dotCMS "Default Actions" - which can be selected in your Zap on the Zapier platform.  The following default actions are availble for your Zap.
 
 ```
 save,
@@ -54,9 +50,10 @@ Within the command, double quotes after equal to (=) are optional if the value a
 
 ### Examples 
 
-```
-// In this example the action publish a content called "ZapierBean" with a couple values.
+Zapier sends dotCMS Content in a "text" field.  dotCMS can injest this formated either as a comma separated list or as String formatted JSON.
 
+This is the example request made by this Zapier Plugin that publishes a content called "ZapierContent" with a title field and a value field.
+```
 curl --location --request POST 'https://demo.dotcms.io/api/v1/dotzapier/action' \
 --header 'Authorization: Bearer eyJ0eXAiOiJK...64' \
 --header 'Content-Type: application/json' \
@@ -66,7 +63,7 @@ curl --location --request POST 'https://demo.dotcms.io/api/v1/dotzapier/action' 
     "inputFormat":"csv",
     "text":"title=New Zapier Bean, value=New Zapier Value"
 }'
-
+```
 
 Another example but using json format instead of csv
 
