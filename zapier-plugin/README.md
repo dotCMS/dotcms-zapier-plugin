@@ -57,7 +57,7 @@ Within the command, double quotes after equal to (=) are optional if the value a
 ```
 // In this example the action publish a content called "ZapierBean" with a couple values.
 
-curl --location --request POST 'https://bluebay.dotcms.io/api/v1/dotzapier/action' \
+curl --location --request POST 'https://demo.dotcms.io/api/v1/dotzapier/action' \
 --header 'Authorization: Bearer eyJ0eXAiOiJK...64' \
 --header 'Content-Type: application/json' \
 --data-raw '{
@@ -70,7 +70,7 @@ curl --location --request POST 'https://bluebay.dotcms.io/api/v1/dotzapier/actio
 
 Another example but using json format instead of csv
 
-curl --location --request POST 'https://bluebay.dotcms.io/api/v1/dotzapier/action' \
+curl --location --request POST 'https://demo.dotcms.io/api/v1/dotzapier/action' \
 --header 'Authorization: Bearer eyJ0eXAiOiJK...64' \
 --header 'Content-Type: application/json' \
 --data-raw '{
