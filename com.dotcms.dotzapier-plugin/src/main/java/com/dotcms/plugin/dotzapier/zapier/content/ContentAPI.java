@@ -355,4 +355,16 @@ public class ContentAPI {
     }
 
 
+    public ContentType type(final String contentTypeVarName) throws DotDataException, DotSecurityException {
+
+        final ContentType contentType =
+                APILocator.getContentTypeAPI(APILocator.systemUser()).find(contentTypeVarName);
+
+        if (null == contentType) {
+
+            throw new DoesNotExistException("The content type " + contentTypeVarName + " does not exist.");
+        }
+
+        return contentType;
+    }
 }

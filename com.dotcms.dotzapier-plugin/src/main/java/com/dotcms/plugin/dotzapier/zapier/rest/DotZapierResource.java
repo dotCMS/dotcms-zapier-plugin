@@ -5,7 +5,10 @@
 
 package com.dotcms.plugin.dotzapier.zapier.rest;
 
+import com.dotcms.contenttype.model.field.ColumnField;
 import com.dotcms.contenttype.model.field.Field;
+import com.dotcms.contenttype.model.field.RowField;
+import com.dotcms.contenttype.model.field.TabDividerField;
 import com.dotcms.plugin.dotzapier.util.ContentParser;
 import com.dotcms.plugin.dotzapier.util.ResourceUtil;
 import com.dotcms.plugin.dotzapier.zapier.app.ZapierApp;
@@ -21,6 +24,7 @@ import com.dotmarketing.exception.DotDataException;
 import com.dotmarketing.exception.DotSecurityException;
 import com.dotmarketing.portlets.contentlet.model.Contentlet;
 import com.dotmarketing.util.Logger;
+import com.dotmarketing.util.UtilMethods;
 import com.dotmarketing.util.json.JSONArray;
 import com.dotmarketing.util.json.JSONException;
 import com.dotmarketing.util.json.JSONObject;
@@ -36,6 +40,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -261,6 +266,45 @@ public class DotZapierResource  {
 
         this.contentAPI.types().entrySet().forEach(entry ->
                 Try.run(()->userResponse.put(entry.getKey(), entry.getValue())));
+
+        // Build the API response
+        return Response.status(200).entity(userResponse).build();
+    }
+
+    /**
+     * This endpoint provides the a map with the field variable as a key and field title as a value
+     *
+     * @return It will return list of dotCMS content
+     *
+     * {
+     *     "field-var1":"field-name1",
+     *     "field-var2":"field-var2"
+     * }
+     */
+    @GET
+    @Path("/get-content-type-fields")
+    @NoCache
+    @Produces(MediaType.APPLICATION_JSON)
+    public final Response getContentTypeFields(@Context final HttpServletRequest request,
+                                               @Context final HttpServletResponse response,
+                                               @QueryParam("contentType") final String contentTypeVarName)
+            throws URISyntaxException, DotStateException, DotDataException, DotSecurityException, JSONException {
+        // Only allow authenticated users
+        new WebResource.InitBuilder(request, response).rejectWhenNoUser(true).requiredBackendUser(true).init().getUser();
+
+        Logger.info(this, "getContentTypeFields Zapier API invoked: " + contentTypeVarName);
+        final JSONObject userResponse = new JSONObject();
+
+        if (UtilMethods.isEmpty(contentTypeVarName)) {
+
+            throw new IllegalArgumentException("contentType query param is required");
+        }
+
+        this.contentAPI.type(contentTypeVarName).fields().stream()
+                .filter(field -> !(field instanceof RowField || field instanceof ColumnField || field instanceof TabDividerField))
+                .forEach(field -> Try.run(()->userResponse.put(field.variable(), field.name()))
+        );
+
 
         // Build the API response
         return Response.status(200).entity(userResponse).build();
