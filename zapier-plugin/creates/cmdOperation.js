@@ -6,6 +6,38 @@
 
 const utils = require('../utils');
 
+
+const contentTypeFields = async (z, bundle) => {
+
+    try {
+
+        const response3 = await z.request(bundle.authData.url + '/api/v1/dotzapier/get-content-type-fields?contentType=' + bundle.inputData.contentType);
+        response3.throwForStatus();
+        var contentTypeFieldsJson = response3.json; // { fieldVariable1: 'field Name1', fieldVariable2: 'field Name2' };
+        var fields = [];
+        for (var key in contentTypeFieldsJson) {
+            fields.push({ key: key, label: contentTypeFieldsJson[key] });
+        }
+
+        return { key: 'contentTypeFields', children: fields };
+    } catch (e) {
+
+        return [{ key: 'contentTypeFields',
+            children: [
+                {
+                    key: 'zapierJson',
+                    label: 'Text',
+                    type: 'string',
+                    helpText: 'Json of the Content that is to be published',
+                    required: false,
+                    list: false,
+                    altersDynamicFields: false,
+                },
+            ],
+        }];
+    }
+};
+
 /**
  * Fields displayed to the user at the time of Zap Action creation
  * choices: { Vanityurl: 'Vanityurl', FileAsset: 'FileAsset', MyBlog: 'MyBlog' },
@@ -22,10 +54,6 @@ const  myinputFields = async (z, bundle) => {
     response2.throwForStatus();
     var json2 = response2.json; // { myBlog: 'My Blog', event: 'Event' };
 
-    const response3 = await z.request(bundle.authData.url + '/api/v1/dotzapier/perform-format-list');
-    response3.throwForStatus();
-    var json3 = response3.json; // { csv: 'csv', json: 'json' };
-
     return [
         {
             key: 'actionName',
@@ -40,23 +68,12 @@ const  myinputFields = async (z, bundle) => {
         {
             key: 'contentType',
             label: 'Content Type',
-            type: 'string',
             helpText: 'Content type to use on the operation',
             required: true,
-            list: false,
             choices: json2,
-            altersDynamicFields: false,
-        },
-        {
-            key: 'inputFormat',
-            label: 'Input Format',
-            type: 'string',
-            helpText: 'Message format to use on the operation',
-            required: true,
-            list: false,
-            choices: json3,
-            altersDynamicFields: false,
-        }];
+            altersDynamicFields: true,
+        }
+    ];
 };
 
 /**
@@ -65,14 +82,19 @@ const  myinputFields = async (z, bundle) => {
  * @param bundle Stores all the user input as well derived attributes 
  * @return Dictionary JSON response from dotZapier plugin API
  */
-const createAction = async (z, bundle) => {  
+const createAction = async (z, bundle) => {
+
     const body = {
         contentType: bundle.inputData.contentType,
         actionName:  bundle.inputData.actionName,
-        inputFormat: bundle.inputData.inputFormat,
-        text: bundle.inputData.text
+        inputFormat: "json",
+        text: formatContentTypeFieldValues(Object.keys(bundle.inputData.contentTypeFields || {}).length > 0
+            ? bundle.inputData.contentTypeFields
+            : bundle.inputData),
     }
-  
+
+    z.console.log("body: " + JSON.stringify(body));
+
     const options = {
       url: bundle.authData.url + utils.dotZapierPluginUrl + 'action',
       method: 'POST',
@@ -87,6 +109,50 @@ const createAction = async (z, bundle) => {
 }
 
 /**
+ * Cleans the value string from special chars and replaces then with a dash
+ *
+ * @param {string} name
+ * @returns string
+ */
+const escapeValue = name => {
+    return name.replace(/\\n/g, "\\n")
+        .replace(/\\'/g, "\\'")
+        .replace(/\\"/g, '\\"')
+        .replace(/\\&/g, "\\&")
+        .replace(/\\r/g, "\\r")
+        .replace(/\\t/g, "\\t")
+        .replace(/\\b/g, "\\b")
+        .replace(/\\f/g, "\\f");
+}
+
+/**
+ * Formats the content type field values to be sent to dotCMS
+ * @param contentTypeFields
+ * @returns {{}}
+ */
+const formatContentTypeFieldValues = contentTypeFields => {
+
+    let formattedContentTypeFieldValues = {};
+
+    if (contentTypeFields) {
+        for (let key in contentTypeFields[0]) {
+
+            if (key === 'actionName' || key === 'contentType') {
+                continue;
+            }
+
+            if (key === 'zapierJson') {
+
+                return JSON.parse(contentTypeFields[0][key]);
+            }
+
+            formattedContentTypeFieldValues[key] = escapeValue(contentTypeFields[0][key]);
+        }
+    }
+    return formattedContentTypeFieldValues;
+};
+
+/**
  * Exports to index.js to initialize the create action
 */
 module.exports = {
@@ -95,8 +161,6 @@ module.exports = {
     display: {
         label: 'Perform An Action On DotCMS',
         description: 'Perform content manipulation on dotCMS',
-        hidden: false,
-        important: true,
     },
 
     operation: {
@@ -104,15 +168,7 @@ module.exports = {
 
         inputFields: [
             myinputFields,
-            {
-                key: 'text',
-                label: 'Text',
-                type: 'string',
-                helpText: 'Text of the Content that is to be published',
-                required: true,
-                list: false,
-                altersDynamicFields: false,
-            },
+            contentTypeFields,
         ],
 
         sample: utils.sampleObject,
