@@ -12,6 +12,8 @@ import com.dotcms.plugin.dotzapier.zapier.app.ZapierAppAPI;
 import com.dotcms.plugin.dotzapier.zapier.content.ContentAPI;
 import com.dotcms.rendering.engine.ScriptEngine;
 import com.dotcms.rendering.engine.ScriptEngineFactory;
+import com.dotcms.rendering.velocity.util.VelocityUtil;
+import com.dotcms.rendering.velocity.viewtools.content.ContentMap;
 import com.dotcms.util.CollectionsUtils;
 import com.dotmarketing.beans.Host;
 import com.dotmarketing.business.APILocator;
@@ -23,12 +25,14 @@ import com.dotmarketing.portlets.workflows.model.WorkflowActionFailureException;
 import com.dotmarketing.portlets.workflows.model.WorkflowActionletParameter;
 import com.dotmarketing.portlets.workflows.model.WorkflowProcessor;
 import com.dotmarketing.util.Logger;
+import com.dotmarketing.util.PageMode;
 import com.dotmarketing.util.UtilMethods;
 import com.dotmarketing.util.json.JSONObject;
 import com.google.common.collect.ImmutableList;
 import com.liferay.portal.model.User;
 import com.liferay.util.StringPool;
 import io.vavr.control.Try;
+import org.h2.store.Page;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -111,23 +115,33 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
 
         try {
 
-            final User currentUser          = processor.getUser();
-            final HttpServletRequest request =
-                    null == HttpServletRequestThreadLocal.INSTANCE.getRequest()?
-                            this.mockRequest(currentUser): HttpServletRequestThreadLocal.INSTANCE.getRequest();
-            final HttpServletResponse response =
-                    null == HttpServletResponseThreadLocal.INSTANCE.getResponse()?
-                            this.mockResponse(): HttpServletResponseThreadLocal.INSTANCE.getResponse();
             final WorkflowActionClassParameter scriptParameter = params.get("script");
             final String script       = scriptParameter.getValue();
             if (UtilMethods.isSet(script)) {
+
+                final User currentUser          = processor.getUser();
+                final HttpServletRequest request =
+                        null == HttpServletRequestThreadLocal.INSTANCE.getRequest()?
+                                this.mockRequest(currentUser): HttpServletRequestThreadLocal.INSTANCE.getRequest();
+                final HttpServletResponse response =
+                        null == HttpServletResponseThreadLocal.INSTANCE.getResponse()?
+                                this.mockResponse(): HttpServletResponseThreadLocal.INSTANCE.getResponse();
+
+                final Host site = Try.of(()-> WebAPILocator.getHostWebAPI().getCurrentHostNoThrow(request)).getOrElse(APILocator.systemHost());
+                final PageMode pageMode = Try.of(()->PageMode.get(request)).getOrElse(PageMode.EDIT_MODE);
+
                 final ScriptEngine engine = ScriptEngineFactory.getInstance().getEngine(ENGINE);
                 final Reader reader = new StringReader(script);
+
                 engine.eval(request, response, reader,
                         CollectionsUtils.map("workflow", processor,
                                 "user", processor.getUser(),
                                 "contentlet", processor.getContentlet(),
-                                "content", processor.getContentlet()));
+                                "content", processor.getContentlet(),
+                                "contentMap",
+                                    new ContentMap(processor.getContentlet(), processor.getUser(), pageMode, site,
+                                            VelocityUtil.getInstance().getContext(request, response))
+                                ));
             }
         } catch (Exception e) {
 
