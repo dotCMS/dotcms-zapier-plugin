@@ -6,7 +6,9 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
 import org.osgi.framework.BundleContext;
@@ -41,10 +43,28 @@ public class ResourceUtil {
      */
     public boolean publishToZapier(final String url, final JSONObject body) {
 
-        try {
-            final HttpClient httpClient = HttpClients.createDefault();
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             final HttpPut request = new HttpPut(url);
-            final StringEntity params = new StringEntity(body.toString());
+            final StringEntity params = new StringEntity(body.toString(), ContentType.APPLICATION_FORM_URLENCODED);
+            request.addHeader("content-type", "application/json");
+            request.addHeader("accept", "application/json");
+            request.setEntity(params);
+            final HttpResponse response = httpClient.execute(request);
+            return response.getStatusLine().getStatusCode() == 200;
+        }  catch (Exception ex) {
+
+            Logger.error(this, "Unable to invoke Zapier publish action");
+            Logger.error(this, ex.getMessage());
+        }
+
+        return false;
+    }
+
+    public boolean publishToZapier(final String url, final JSONArray body) {
+
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            final HttpPut request = new HttpPut(url);
+            final StringEntity params = new StringEntity(body.toString(), ContentType.APPLICATION_FORM_URLENCODED);
             request.addHeader("content-type", "application/json");
             request.addHeader("accept", "application/json");
             request.setEntity(params);

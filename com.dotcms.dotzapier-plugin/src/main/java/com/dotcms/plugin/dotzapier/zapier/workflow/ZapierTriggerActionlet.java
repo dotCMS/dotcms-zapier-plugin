@@ -1,5 +1,6 @@
 package com.dotcms.plugin.dotzapier.zapier.workflow;
 
+import com.dotcms.api.vtl.model.DotJSON;
 import com.dotcms.api.web.HttpServletRequestThreadLocal;
 import com.dotcms.api.web.HttpServletResponseThreadLocal;
 import com.dotcms.mock.request.FakeHttpRequest;
@@ -32,7 +33,6 @@ import com.google.common.collect.ImmutableList;
 import com.liferay.portal.model.User;
 import com.liferay.util.StringPool;
 import io.vavr.control.Try;
-import org.h2.store.Page;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -75,6 +75,14 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
 
         paramList.add(new WorkflowActionletParameter
                 ("script", "Post Script Code", null, false));
+
+        paramList.add(new WorkflowActionletParameter
+                ("fieldValueCustomizeScript",
+                        "This Script is usefull to format/customize the value for a content field, <br/>" +
+                        "it receives these parameters: contentlet, fieldVarName (field var name of the content), <br/>" +
+                        " fieldValue (actual value for the field), <br/>" +
+                        "contentMap (similar to content but as a content map), <br/>" +
+                         "finally if want to override the result use $dotJSON.put('fieldValue', xxx) ", null, false));
 
         return paramList.build();
     }
@@ -174,7 +182,8 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
      * @throws WorkflowActionFailureException
     */
     @Override
-    public void executeAction(WorkflowProcessor processor, Map<String, WorkflowActionClassParameter> params) throws WorkflowActionFailureException {
+    public void executeAction(final WorkflowProcessor processor,
+                              final Map<String, WorkflowActionClassParameter> params) throws WorkflowActionFailureException {
 
         Logger.info(this, "Zapier Workflow action invoked");
 
@@ -205,16 +214,17 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
             this.executeScript(processor, params);
 
             final Map<String, String> zapierWebHookTriggerURLS = zapierAppOpt.get().getZapsRegisterMap();
+            final WorkflowActionClassParameter webHookUrlParameter = params.get("webHookUrl");
+            final String webHookUrl = webHookUrlParameter.getValue();
 
             Logger.info(this, "Firing zapier actionlet");
             Logger.info(this, "Available Zapier Actions " + zapierAppOpt.get().getZapsRegisterMap());
 
-            final JSONObject dotCMSObject = this.prepareContentletObject(contentlet);
-            final WorkflowActionClassParameter webHookUrlParameter = params.get("webHookUrl");
-            final String webHookUrl = webHookUrlParameter.getValue();
+            final JSONObject dotCMSData = this.prepareContentletObject(contentlet, processor, params);
+
             if (UtilMethods.isSet(webHookUrl)) {
 
-                this.pushToZapier(resourceUtil, webHookUrl, dotCMSObject);
+                this.pushToZapier(resourceUtil, webHookUrl, dotCMSData);
             } else {
 
                 for (final Map.Entry<String, String> webHookEntry : zapierWebHookTriggerURLS.entrySet()) {
@@ -224,7 +234,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
                     if (UtilMethods.isSet(webHookKey) && webHookKey.contains(currentContentTypeVar)) {
 
                         final String zapierActionUrl = webHookEntry.getValue();
-                        this.pushToZapier(resourceUtil, zapierActionUrl, dotCMSObject);
+                        this.pushToZapier(resourceUtil, zapierActionUrl, dotCMSData);
                     }
                 }
             }
@@ -233,8 +243,6 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
             Logger.error(this, "No Zapier configuration found");
         }
     }
-
-
 
     private boolean isContentTypeAllowed(final Set<String> allowedContentTypes, final String currentContentTypeVar) {
 
@@ -268,10 +276,14 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
      * Generates the contentlet object which needs to be sent out to Zapier.
      * It would contain all the output fields in a Zap trigger
      * @param contentlet dotCMS Contentlet object
+     * @param processor Workflow processor
+     * @param params Workflow action parameters
      * @return JSONObject Contains only the fields needed to be processed by Zapier
     */
-    private final JSONObject prepareContentletObject(final Contentlet contentlet) {
-        JSONObject dotCMSObject = new JSONObject();
+    protected  JSONObject prepareContentletObject(final Contentlet contentlet, final WorkflowProcessor processor,
+                                                  final Map<String, WorkflowActionClassParameter> params) {
+
+        final JSONObject dotCMSObject = new JSONObject();
 
         try {
             final String identifier = contentlet.getIdentifier();
@@ -301,7 +313,9 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
 
             for (final Map.Entry entry: contentlet.getMap().entrySet()) {
 
-                dotCMSObject.put(contentAPI.createContentKey(contentlet, entry.getKey().toString()), entry.getValue());
+                dotCMSObject.put(contentAPI.createContentKey(contentlet, entry.getKey().toString()),
+                        this.processContentFieldValue( entry.getKey().toString(), entry.getValue(),
+                                contentlet, processor, params));
             }
 
             Logger.info(this, "dotCMSObject = " + dotCMSObject);
@@ -312,5 +326,58 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
         }
 
         return dotCMSObject;
+    }
+
+    protected Object processContentFieldValue(final String fieldVarName, final Object value,
+                                              final Contentlet contentlet, final WorkflowProcessor processor,
+                                              final Map<String, WorkflowActionClassParameter> params) {
+
+        try {
+
+            final WorkflowActionClassParameter scriptParameter = params.get("fieldValueCustomizeScript");
+            final String script       = scriptParameter.getValue();
+            if (UtilMethods.isSet(script)) {
+
+                final User currentUser          = processor.getUser();
+                final HttpServletRequest request =
+                        null == HttpServletRequestThreadLocal.INSTANCE.getRequest()?
+                                this.mockRequest(currentUser): HttpServletRequestThreadLocal.INSTANCE.getRequest();
+                final HttpServletResponse response =
+                        null == HttpServletResponseThreadLocal.INSTANCE.getResponse()?
+                                this.mockResponse(): HttpServletResponseThreadLocal.INSTANCE.getResponse();
+
+                final Host site = Try.of(()-> WebAPILocator.getHostWebAPI().getCurrentHostNoThrow(request)).getOrElse(APILocator.systemHost());
+                final PageMode pageMode = Try.of(()->PageMode.get(request)).getOrElse(PageMode.EDIT_MODE);
+
+                final ScriptEngine engine = ScriptEngineFactory.getInstance().getEngine(ENGINE);
+                final Reader reader = new StringReader(script);
+
+                final Map<String, Object> resultMap = (Map<String, Object>) engine.eval(request, response, reader,
+                        CollectionsUtils.map("workflow", processor,
+                                "contentlet", processor.getContentlet(),
+                                "fieldVarName", fieldVarName,
+                                "fieldValue", value,
+                                "contentMap",
+                                new ContentMap(processor.getContentlet(), processor.getUser(), pageMode, site,
+                                        VelocityUtil.getInstance().getContext(request, response))
+                        ));
+
+                if (null != resultMap &&  resultMap.containsKey("dotJSON")
+                        && null != resultMap.get("dotJSON")) {
+
+                    final DotJSON dotJSON = (DotJSON)resultMap.get("dotJSON");
+                    if (null != dotJSON.get("fieldValue")) {
+                        return dotJSON.get("fieldValue");
+                    }
+                }
+            }
+        } catch (Exception e) {
+
+            Logger.error(this, e.getMessage(), e);
+            throw new WorkflowActionFailureException(e.getMessage(), e);
+        }
+
+
+        return null != value? value.toString(): "null";
     }
 }
