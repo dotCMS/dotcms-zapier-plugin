@@ -84,10 +84,10 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
                         "<strong>Field Variable Customization:</strong><br/>" +
                         "Performs a transformation on all fields.<br/>" +
                         "<a href=\"https://auth.dotcms.com/docs/latest/dotzapier-integration-plugin#FieldValueCustomization\"" +
-                        "target=\"_blank\" style=\"text-decoration:underline; color:#426bf0;\">Variables:</a>" +
+                        "target=\"_blank\" style=\"text-decoration:underline; color:#426bf0;\">Variables:</a> " +
                         "<code>$contentlet</code>, <code>$fieldVarName</code>,<br/>" +
                         "<code>$fieldValue</code>, <code>$contentMap</code><br/>" +
-                        "Execute with <code>$dotJSON.put('var', "XX${var}XX")</code>", null, false));
+                        "Execute with <code>$dotJSON.put('var', \"XX${var}XX\")</code>", null, false));
         
         
         
