@@ -75,7 +75,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
 
         paramList.add(new WorkflowActionletParameter
                 ("script", "<strong>Post-Script Code:</strong><br/>Performs manual Velocity operations on content.<br/>" +
-                        "<a href=\"https://auth.dotcms.com/docs/latest/dotzapier-integration-plugin#PostScriptCode\"" + 
+                        "<a href=\"https://www.dotcms.com/docs/latest/dotzapier-integration-plugin#PostScriptCode\"" + 
                         "target=\"_blank\" style=\"text-decoration:underline; color:#426bf0;\">Variables:</a> <code>$content</code>", 
                         null, false));
 
@@ -83,7 +83,7 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
                 ("fieldValueCustomizeScript",
                         "<strong>Field Variable Customization:</strong><br/>" +
                         "Performs a transformation on all fields.<br/>" +
-                        "<a href=\"https://auth.dotcms.com/docs/latest/dotzapier-integration-plugin#FieldValueCustomization\"" +
+                        "<a href=\"https://www.dotcms.com/docs/latest/dotzapier-integration-plugin#FieldValueCustomization\"" +
                         "target=\"_blank\" style=\"text-decoration:underline; color:#426bf0;\">Variables:</a> " +
                         "<code>$contentlet</code>, <code>$fieldVarName</code>,<br/>" +
                         "<code>$fieldValue</code>, <code>$contentMap</code><br/>" +
