@@ -71,18 +71,23 @@ public class ZapierTriggerActionlet extends WorkFlowActionlet {
         final ImmutableList.Builder<WorkflowActionletParameter> paramList = new ImmutableList.Builder<>();
 
         paramList.add(new WorkflowActionletParameter
-                ("webHookUrl", "Zap Webhook URL", null, false));
+                ("webHookUrl", "<strong>Zap Webhook URL:</strong><br/>Overrides webhook; can usually be left blank.", null, false));
 
         paramList.add(new WorkflowActionletParameter
-                ("script", "Post Script Code", null, false));
+                ("script", "<strong>Post-Script Code:</strong><br/>Performs manual Velocity operations on content.<br/>" +
+                        "<a href=\"https://www.dotcms.com/docs/latest/dotzapier-integration-plugin#PostScriptCode\"" + 
+                        "target=\"_blank\" style=\"text-decoration:underline; color:#426bf0;\">Variables:</a> <code>$content</code>", 
+                        null, false));
 
         paramList.add(new WorkflowActionletParameter
                 ("fieldValueCustomizeScript",
-                        "This Script is usefull to format/customize the value for a content field, <br/>" +
-                        "it receives these parameters: contentlet, fieldVarName (field var name of the content), <br/>" +
-                        " fieldValue (actual value for the field), <br/>" +
-                        "contentMap (similar to content but as a content map), <br/>" +
-                         "finally if want to override the result use $dotJSON.put('fieldValue', xxx) ", null, false));
+                        "<strong>Field Variable Customization:</strong><br/>" +
+                        "Performs a transformation on all fields.<br/>" +
+                        "<a href=\"https://www.dotcms.com/docs/latest/dotzapier-integration-plugin#FieldValueCustomization\"" +
+                        "target=\"_blank\" style=\"text-decoration:underline; color:#426bf0;\">Variables:</a> " +
+                        "<code>$contentlet</code>, <code>$fieldVarName</code>,<br/>" +
+                        "<code>$fieldValue</code>, <code>$contentMap</code><br/>" +
+                        "Execute with <code>$dotJSON.put('var', \"XX${var}XX\")</code>", null, false));
 
         return paramList.build();
     }
