@@ -11,6 +11,7 @@ The other plugin is a Node application that needs to be deployed on Zapier as th
 Zapier Plugin is present in [zapier-plugin](zapier-plugin)
 
 For more information on how to configure the plugin, please see the documentaation here:
+
 https://www.dotcms.com/docs/latest/dotzapier-integration-plugin
 
 
