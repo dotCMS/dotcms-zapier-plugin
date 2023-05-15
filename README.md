@@ -9,3 +9,9 @@ OSGi Application is present in [com.dotcms.dotzapier-plugin](com.dotcms.dotzapie
 The other plugin is a Node application that needs to be deployed on Zapier as the Zapier app. It sends out requests to the dotCMS plugin and acts as a middleware between different third-party applications. Allows us to tap into a large Zapier app directory which can be connected with dotCMS
 
 Zapier Plugin is present in [zapier-plugin](zapier-plugin)
+
+For more information on how to configure the plugin, please see the documentaation here:
+
+https://www.dotcms.com/docs/latest/dotzapier-integration-plugin
+
+
