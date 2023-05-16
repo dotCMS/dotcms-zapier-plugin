@@ -128,19 +128,14 @@ const obtainOutputFields = (obj) => {
  * dotCMS content object returned by the list operation
  */
 const sampleObject = {
-  id: "2a4fb69a-1f79-4bef-be47-20dec8669c78",
-  identifier: "2a4fb69a-1f79-4bef-be47-20dec8669c78",
-  hostName: "demo.dotcms.com",
-  url: "https://demo.dotcms.com/content.ec5c6e2f-4266-4ff8-adfc-22f76ba453b7",
-  contentType: "My Blog",
-  title: "French Polynesia Everything You Need to Know",
-  modUserName: "Admin User",
-  owner: "dotcms.org.1",
-  archived: false,
-  working: true,
-  locked: false,
-  live: true,
-  modDate: "2022-06-07 18:23:10.844"
+
+    "BlockEditorDoc.id": "da1c6bdd51afe6ed9951302c9441d12f",
+    "BlockEditorDoc.identifier": "da1c6bdd51afe6ed9951302c9441d12f",
+    "BlockEditorDoc.hostName":"48190c8c-42c4-46af-8d1a-0cd5db894797",
+    "BlockEditorDoc.contentType": "BlockEditorDoc",
+    "BlockEditorDoc.title": "Test4",
+    "BlockEditorDoc.modUserName": "dotcms.org.1",
+    "BlockEditorDoc.owner": "dotcms.org.1"
 };
 
 const sampleOutputFields = obtainOutputFields(sampleObject);

@@ -92,7 +92,7 @@ const authentication = {
       required: true,
       label: 'dotCMS URL',
       type: 'string',
-      helpText: 'URL of the dotCMS Instance',
+      helpText: 'URL of the dotCMS Instance, for example: [Demo Site](https://demo.dotcms.com)'
     },
     {
       computed: false,
@@ -100,7 +100,7 @@ const authentication = {
       required: true,
       label: 'Email',
       type: 'string',
-      helpText: 'Email Address of the Administrator of the dotCMS instance',
+      helpText: 'Email Address of the Administrator of the dotCMS instance, for example: [admin@dotcms.com](https://demo.dotcms.com)',
     },
     {
       computed: false,
