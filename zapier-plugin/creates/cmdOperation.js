@@ -28,7 +28,7 @@ const contentTypeFields = async (z, bundle) => {
                     key: 'zapierJson',
                     label: 'Text',
                     type: 'string',
-                    helpText: 'Json of the Content that is to be published',
+                    helpText: 'JSON of the content to be published',
                     required: false,
                     list: false,
                     altersDynamicFields: false,
@@ -68,7 +68,7 @@ const  myinputFields = async (z, bundle) => {
         {
             key: 'contentType',
             label: 'Content Type',
-            helpText: 'Content type to use on the operation',
+            helpText: 'Content Type to use in the operation',
             required: true,
             choices: json2,
             altersDynamicFields: true,
@@ -159,8 +159,8 @@ module.exports = {
     key: 'cmdOperation',
     noun: 'Content',
     display: {
-        label: 'Perform an Action on DotCMS',
-        description: 'Perform content manipulation on dotCMS',
+        label: 'Send to dotCMS',
+        description: 'Transfers data to be processed with the selected dotCMS workflow action.',
     },
 
     operation: {
